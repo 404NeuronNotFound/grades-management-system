@@ -3,6 +3,9 @@
 {% block content %}
 {% load static %}
 {% load custom_filters %}
+
+
+{% if report_cards %}
 {% for report_card in report_cards %}
 
 <div class="bg-white rounded-lg shadow-md p-6">
@@ -98,5 +101,10 @@
     </div>
 </div>
 {% endfor %}
+{% else %}
+    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+        <p class="text-gray-600 text-lg">No report card is available at the moment.</p>
+    </div>
+{% endif %}
 
 {% endblock %}

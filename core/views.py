@@ -654,7 +654,7 @@ import json
 from django.db.models import Max
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Enrollment, Grade, Activity, Score, Subject
+from .models import Enrollment, Grade, Activity, Score, Subject, SchoolYear
 from decimal import Decimal
 
 def decimal_default(obj):
@@ -666,84 +666,91 @@ def decimal_default(obj):
 @allowed_users(allowed_roles=['student'])
 def student_dashboard(request):
     student = request.user.student
-    current_enrollments = Enrollment.objects.filter(
+    
+    # Find the active school year first
+    active_school_year = SchoolYear.objects.filter(is_active=True).first()
+    
+    # Get current and past enrollments for the student
+    enrollments = Enrollment.objects.filter(
         student=student,
-        class_obj__school_year__is_active=True
+        class_obj__school_year=active_school_year
     ).select_related('class_obj', 'class_obj__subject', 'class_obj__school_year')
 
-    # Get the active school year
-    active_school_year = current_enrollments.first().class_obj.school_year if current_enrollments else None
-
-    # Fetch the grades for each subject by grading period
+    # Initialize variables with default values
     grade_trends = {}
-    for enrollment in current_enrollments:
-        subject = enrollment.class_obj.subject
-        grades = Grade.objects.filter(
-            enrollment=enrollment,
-            grading_period__school_year=active_school_year
-        ).order_by('grading_period__period')
-
-        # Add grades for each grading period
-        if subject.name not in grade_trends:
-            grade_trends[subject.name] = {'periods': []}
-        for grade in grades:
-            grade_trends[subject.name]['periods'].append({
-                'period': grade.grading_period.period,
-                'grade': grade.quarterly_grade
-            })
-
-    # Calculate activity completion for each subject
     subject_activities = {}
-    for subject in Subject.objects.all():
-        total_activities = Activity.objects.filter(
-            class_obj__in=current_enrollments.filter(class_obj__subject=subject).values('class_obj')
-        ).count()
-        completed_activities = Score.objects.filter(
-            enrollment__in=current_enrollments.filter(class_obj__subject=subject),
-            score__gt=0
-        ).count()
-        completion_rate = (completed_activities / total_activities * 100) if total_activities > 0 else 0
-        subject_activities[subject.name] = {
-            'total_activities': total_activities,
-            'completed_activities': completed_activities,
-            'completion_rate': round(completion_rate, 1)
-        }
-
-    # Calculate overall activity completion
-    total_activities = sum(data['total_activities'] for data in subject_activities.values())
-    completed_activities = sum(data['completed_activities'] for data in subject_activities.values())
-    overall_completion_rate = (completed_activities / total_activities * 100) if total_activities > 0 else 0
-
+    overall_completion_rate = 0
+    total_activities = 0
+    completed_activities = 0
     grade_notifications = []
-    for enrollment in current_enrollments:
-        subject = enrollment.class_obj.subject
-        teacher = enrollment.class_obj.teacher
-        grading_periods = Grade.objects.filter(
-            enrollment=enrollment,
-            grading_period__school_year=active_school_year
-        ).values('grading_period__period', 'grading_period__id', 'created_at', 'updated_at')
 
-        for period in grading_periods:
-            grade_notifications.append({
-                'teacher': f"{teacher.Firstname} {teacher.Lastname}",
-                'subject': subject.name,
-                'grading_period': period['grading_period__period'],
-                'grading_period_id': period['grading_period__id'],
-                'created_at': period['created_at'],  # Add the creation timestamp
-                'updated_at': period['updated_at'],  # Add the update timestamp
-            })
+    # Proceed with dashboard calculations only if there are enrollments
+    if enrollments.exists():
+        # Fetch the grades for each subject by grading period
+        for enrollment in enrollments:
+            subject = enrollment.class_obj.subject
+            grades = Grade.objects.filter(
+                enrollment=enrollment,
+                grading_period__school_year=active_school_year
+            ).order_by('grading_period__period')
 
-    # Sort the notifications by the 'updated_at' or 'created_at' to prioritize the latest updates
-    grade_notifications = sorted(grade_notifications, key=lambda x: x['updated_at'], reverse=True)
+            # Add grades for each grading period
+            if subject.name not in grade_trends:
+                grade_trends[subject.name] = {'periods': []}
+            for grade in grades:
+                grade_trends[subject.name]['periods'].append({
+                    'period': grade.grading_period.period,
+                    'grade': grade.quarterly_grade
+                })
 
-    # Slice to get the latest 10 notifications
-    grade_notifications = grade_notifications[:10]
+        # Calculate activity completion for each subject
+        subjects = Subject.objects.all()
+        for subject in subjects:
+            total_activities = Activity.objects.filter(
+                class_obj__in=enrollments.filter(class_obj__subject=subject).values('class_obj')
+            ).count()
+            completed_activities = Score.objects.filter(
+                enrollment__in=enrollments.filter(class_obj__subject=subject),
+                score__gt=0
+            ).count()
+            completion_rate = (completed_activities / total_activities * 100) if total_activities > 0 else 0
+            subject_activities[subject.name] = {
+                'total_activities': total_activities,
+                'completed_activities': completed_activities,
+                'completion_rate': round(completion_rate, 1)
+            }
 
+        # Calculate overall activity completion
+        total_activities = sum(data['total_activities'] for data in subject_activities.values())
+        completed_activities = sum(data['completed_activities'] for data in subject_activities.values())
+        overall_completion_rate = (completed_activities / total_activities * 100) if total_activities > 0 else 0
 
+        # Fetch grade notifications
+        grade_notifications = []
+        for enrollment in enrollments:
+            subject = enrollment.class_obj.subject
+            teacher = enrollment.class_obj.teacher
+            grading_periods = Grade.objects.filter(
+                enrollment=enrollment,
+                grading_period__school_year=active_school_year
+            ).values('grading_period__period', 'grading_period__id', 'created_at', 'updated_at')
+
+            for period in grading_periods:
+                grade_notifications.append({
+                    'teacher': f"{teacher.Firstname} {teacher.Lastname}",
+                    'subject': subject.name,
+                    'grading_period': period['grading_period__period'],
+                    'grading_period_id': period['grading_period__id'],
+                    'created_at': period['created_at'],
+                    'updated_at': period['updated_at'],
+                })
+
+        # Sort and limit notifications
+        grade_notifications = sorted(grade_notifications, key=lambda x: x['updated_at'], reverse=True)[:10]
 
     context = {
         'student': student,
-        'grade_trends': json.dumps(grade_trends, default=decimal_default),  # Use custom serializer
+        'grade_trends': json.dumps(grade_trends, default=decimal_default),
         'grade_notifications': grade_notifications,
         'subject_activities': subject_activities,
         'overall_completion_rate': round(overall_completion_rate, 1),
@@ -1531,6 +1538,11 @@ def admin_GradeReport(request):
     for student in students:
         for school_year in school_years:
             enrollments = Enrollment.objects.filter(student=student, class_obj__school_year=school_year)
+
+
+            if not enrollments.exists():
+                continue
+
             grading_periods = GradingPeriod.objects.filter(school_year=school_year).order_by('period')
 
             grades_data = {}
@@ -3315,50 +3327,70 @@ def student_reportCard(request):
 
     report_cards = []
 
-    
-
     for school_year in school_years:
-        enrollments = Enrollment.objects.filter(student=student, class_obj__school_year=school_year)
+        # Filter enrollments to only include complete enrollments with grade and section
+        enrollments = Enrollment.objects.filter(
+            student=student, 
+            class_obj__school_year=school_year,
+            class_obj__grade_level__isnull=False,
+            class_obj__section__isnull=False
+        )
         
+        # Skip this school year if no valid enrollments
+        if not enrollments.exists():
+            continue
+
         subjects = Subject.objects.all()
         grading_periods = GradingPeriod.objects.filter(school_year=school_year).order_by('period')
         
         grades_data = {}
+        subjects_with_grades = []  # Track subjects with valid grades
+
         for subject in subjects:
             grades_data[subject.name] = {}
+            subject_grades = []
+            
             for period in grading_periods:
                 grade = Grade.objects.filter(
                     enrollment__student=student,
                     enrollment__class_obj__subject=subject,
+                    enrollment__class_obj__school_year=school_year,
                     grading_period=period
                 ).first()
+                
                 grades_data[subject.name][period.period] = grade.quarterly_grade if grade else None
+                if grade and grade.quarterly_grade is not None:
+                    subject_grades.append(grade.quarterly_grade)
 
-        # Calculate final grades and general average
-        for subject in grades_data:
-            grades = [grade for grade in grades_data[subject].values() if grade is not None]
-            if grades:
-                grades_data[subject]['final_grade'] = round(sum(grades) / len(grades), 2)
-                grades_data[subject]['remarks'] = 'Passed' if grades_data[subject]['final_grade'] >= 75 else 'Failed'
+            # Calculate final grade and remarks only if there are grades
+            if subject_grades:
+                grades_data[subject.name]['final_grade'] = round(sum(subject_grades) / len(subject_grades), 2)
+                grades_data[subject.name]['remarks'] = 'Passed' if grades_data[subject.name]['final_grade'] >= 75 else 'Failed'
+                subjects_with_grades.append(grades_data[subject.name]['final_grade'])
             else:
-                grades_data[subject]['final_grade'] = None
-                grades_data[subject]['remarks'] = None
+                grades_data[subject.name]['final_grade'] = None
+                grades_data[subject.name]['remarks'] = None
 
-        general_average = round(sum(subject['final_grade'] for subject in grades_data.values() if subject['final_grade'] is not None) / len(grades_data), 2) if grades_data else None
+        # Calculate general average only for subjects with grades
+        general_average = round(sum(subjects_with_grades) / len(subjects_with_grades), 2) if subjects_with_grades else None
 
         # Determine overall pass/fail status
         overall_status = 'Passed' if general_average is not None and general_average >= 75 else 'Failed'
 
-        grade_section = enrollments.first().class_obj.grade_level + ' - ' + enrollments.first().class_obj.section if enrollments.exists() else 'N/A'
+        # Get the first enrollment's grade and section
+        first_enrollment = enrollments.first()
+        grade_section = f"{first_enrollment.class_obj.grade_level} - {first_enrollment.class_obj.section}"
 
-        report_cards.append({
-            'school_year': school_year,
-            'grades_data': grades_data,
-            'grading_periods': grading_periods,
-            'general_average': general_average,
-            'overall_status': overall_status,
-            'grade_section': grade_section
-        })
+        # Only add report card if there are valid grades
+        if subjects_with_grades:
+            report_cards.append({
+                'school_year': school_year,
+                'grades_data': grades_data,
+                'grading_periods': grading_periods,
+                'general_average': general_average,
+                'overall_status': overall_status,
+                'grade_section': grade_section
+            })
 
     context = {
         'student': student,
