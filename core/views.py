@@ -165,7 +165,7 @@ def profile(request):
                     # Return a success response
                     return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
             else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid form data'})
+                return JsonResponse({'status': 'error', 'message': 'Invalid form data or password both password incorrect'})
         else:
             form = AdministratorForm(request.POST, request.FILES, instance=admin)
             if form.is_valid():
