@@ -12,7 +12,7 @@ class SessionTimeoutMiddleware:
 
     def __call__(self, request):
         
-        SESSION_TIMEOUT = timedelta(minutes=2)
+        SESSION_TIMEOUT = timedelta(hours=2)
 
         if request.user.is_authenticated:
             last_activity = request.session.get('last_activity')

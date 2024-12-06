@@ -158,7 +158,11 @@ def profile(request):
                     user = request.user
                     user.set_password(new_password)
                     user.save()
+
+                    # Update session without logging out
                     update_session_auth_hash(request, user)
+                    
+                    # Return a success response
                     return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
             else:
                 return JsonResponse({'status': 'error', 'message': 'Invalid form data'})
@@ -180,6 +184,7 @@ def profile(request):
         'administrator': admin,
     }
     return render(request, 'admin-profile.html', context)
+
 
 
 
@@ -221,7 +226,7 @@ def teacher_profile(request):
                     update_session_auth_hash(request, user)  # Important!
                     return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
             else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid form data'})
+                return JsonResponse({'status': 'error', 'message': 'Invalid form data or password both password incorrect'})
                     
         else:
             form = TeacherForm(request.POST, request.FILES, instance=teacher)

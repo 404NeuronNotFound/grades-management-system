@@ -4,6 +4,25 @@
 
 {% load static %}
 
+<style>
+    .messages {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.messages.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.messages.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+</style>
 <div class="flex-grow p-4 lg:ml-64 flex space-x-4">
 
     <div class="flex-grow p-4 lg:ml-64 flex space-x-4">
@@ -46,6 +65,7 @@
         <!-- Overview Tab -->
         <div id="overview" class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Details</h3>
+            <div class="messages"></div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <dt class="font-medium text-gray-500">Full Name</dt>
@@ -68,6 +88,7 @@
         <!-- Edit Profile Tab (hidden by default) -->
         <div id="edit-profile" class="bg-white rounded-lg shadow-md p-6 hidden">
             <h3 class="text-lg font-medium text-gray-900">Edit Profile</h3>
+            
         
             <form method="post" action="{% url 'admin-profile' %}" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -82,7 +103,7 @@
                         >
                     </div>
                     <label for="{{ form.profile_picture.id_for_label }}" class="cursor-pointer bg-green-700 hover:bg-green-800 text-white py-2 px-4 rounded-md inline-block font-semibold">
-                        Upload New Image
+                        Update Image
                     </label>
                     <input
                         type="file"
@@ -111,7 +132,7 @@
         
                 <div class="mb-4">
                     <label class="block text-gray-700">Phone Number</label>
-                    <input type="text" name="{{ form.Phone_Number.name }}" value="{{ request.user.administrator.Phone_Number }}" maxlength="11" class="mt-1 block w-full rounded-md border-gray-300">
+                    <input type="number" name="{{ form.Phone_Number.name }}" value="{{ request.user.administrator.Phone_Number }}" maxlength="11" class="mt-1 block w-full rounded-md border-gray-300">
                 </div>
         
                 <div class="mb-4">
@@ -196,7 +217,7 @@ function confirmSaveChanges() {
     
     // Get the form
     const form = document.querySelector('#edit-profile form');
-    
+    const messageDiv = document.querySelector('.messages');
     // Create FormData object
     const formData = new FormData(form);
     
@@ -211,16 +232,26 @@ function confirmSaveChanges() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert(data.message);
-            // Optionally refresh the page or update the UI
-            location.reload();
+            messageDiv.innerHTML = `<div class="text-green-500">${data.message}</div>`; // Display success message
+            messageDiv.classList.add('success'); // Optionally add a class for styling
+            // Store message in sessionStorage before reloading
+            sessionStorage.setItem('message', JSON.stringify({ type: 'success', text: data.message }));
+            location.reload(); // Refresh the page or update the UI
         } else {
-            alert(data.message || 'An error occurred while updating the profile.');
+            messageDiv.innerHTML = `<div class="text-red-500">${data.message || 'An error occurred while updating the profile.'}</div>`; // Display error message
+            messageDiv.classList.add('error'); // Optionally add a class for styling
+            // Store message in sessionStorage before reloading
+            sessionStorage.setItem('message', JSON.stringify({ type: 'error', text: data.message || 'An error occurred while updating the profile.' }));
+            location.reload(); // Refresh the page or update the UI
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An unexpected error occurred. Please try again.');
+        messageDiv.innerHTML = `<div class="text-red-500">An unexpected error occurred. Please try again.</div>`; // Error message
+        messageDiv.classList.add('error');
+        // Store error message in sessionStorage
+        sessionStorage.setItem('message', JSON.stringify({ type: 'error', text: 'An unexpected error occurred. Please try again.' }));
+        location.reload(); // Refresh the page or update the UI
     });
 }
 
@@ -240,7 +271,7 @@ function confirmPassChanges() {
     
     // Get the form
     const form = document.querySelector('#change-password form');
-    
+    const messageDiv = document.querySelector('.messages');
     // Create FormData object
     const formData = new FormData(form);
     
@@ -255,16 +286,23 @@ function confirmPassChanges() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert(data.message);
-            // Optionally refresh the page or update the UI
-            location.reload();
+            messageDiv.innerHTML = `<div class="text-green-500">${data.message}</div>`; // Display success message
+            messageDiv.classList.add('success'); // Optionally add a class for styling
+            // Store message in sessionStorage before reloading
+            sessionStorage.setItem('message', JSON.stringify({ type: 'success', text: data.message }));
+            location.reload(); // Refresh the page or update the UI
         } else {
-            alert(data.message || 'An error occurred while changing the password.');
+            messageDiv.innerHTML = `<div class="text-red-500">${data.message || 'An error occurred while changing the password.'}</div>`; // Display error message
+            messageDiv.classList.add('error'); // Optionally add a class for styling
+            // Store message in sessionStorage before reloading
+            sessionStorage.setItem('message', JSON.stringify({ type: 'error', text: data.message || 'An error occurred while changing the password.' }));
+            location.reload(); // Refresh the page or update the UI
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An unexpected error occurred. Please try again.');
+        messageDiv.innerHTML = `<div class="text-red-500">An unexpected error occurred. Please try again.</div>`; // Error message
+        messageDiv.classList.add('error');
     });
 }
 
@@ -286,6 +324,19 @@ function showTab(tabId) {
     // Add active class to the clicked button
     document.getElementById('tab-' + tabId).classList.add('active-tab');
 }
+
+window.addEventListener('DOMContentLoaded', function() {
+    const messageDiv = document.querySelector('.messages');
+    const storedMessage = sessionStorage.getItem('message');
+
+    if (storedMessage) {
+        const { type, text } = JSON.parse(storedMessage);
+        messageDiv.innerHTML = `<div class="${type === 'success' ? 'text-green-500' : 'text-red-500'}">${text}</div>`; // Display the message
+        messageDiv.classList.add(type); // Add the appropriate class for styling
+        sessionStorage.removeItem('message'); // Clear the message from sessionStorage
+    }
+});
+
 </script>
     
 </div>
