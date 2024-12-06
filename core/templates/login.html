@@ -26,6 +26,10 @@
         .login-button:hover {
             background-color: #166534;
         }
+        .input-error {
+            border-color: #ef4444 !important;
+            ring-color: #ef4444 !important;
+        }
     </style>
 </head>
 
@@ -50,23 +54,13 @@
                     class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                     autocomplete="current-password">
             </div>
-            <div class="flex items-center mb-6">
-                
-            </div>
+            
+            <div id="error-message" class="text-red-600 text-center mb-4 hidden"></div>
            
             <button type="submit"
                 class="w-full text-white py-2 px-4 rounded-md focus:outline-none login-button font-semibold">
                 Login
             </button>
-        
-            <div class="flex justify-center">
-                <div class="text-center">
-                    {% for message in messages %}
-                        <p id="messages" class="text-red-600">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            </div>
-            
         </form>
     </div>
 
@@ -92,9 +86,18 @@
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('login-form');
             const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault(); // Prevent the form from submitting normally
+
+                // Reset error states
+                errorMessage.textContent = '';
+                errorMessage.classList.add('hidden');
+                usernameInput.classList.remove('input-error');
+                passwordInput.classList.remove('input-error');
 
                 // Show loading spinner
                 loadingSpinner.classList.remove('hidden');
@@ -119,14 +122,32 @@
                         // Redirect to dashboard or desired page
                         window.location.href = data.redirect_url;
                     } else {
-                        // Show alert for failed login
-                        alert('Login failed. Please check your credentials and try again.');
+                        // Show error message and highlight inputs
+                        errorMessage.textContent = data.message;
+                        errorMessage.classList.remove('hidden');
+                        usernameInput.classList.add('input-error');
+                        passwordInput.classList.add('input-error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     loadingSpinner.classList.add('hidden');
-                    alert('An error occurred. Please try again later.');
+                    errorMessage.textContent = 'An error occurred. Please try again later.';
+                    errorMessage.classList.remove('hidden');
+                    usernameInput.classList.add('input-error');
+                    passwordInput.classList.add('input-error');
+                });
+            });
+
+            // Remove error styling when user starts typing
+            [usernameInput, passwordInput].forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.remove('input-error');
+                    if (usernameInput.classList.contains('input-error') || 
+                        passwordInput.classList.contains('input-error')) {
+                        errorMessage.textContent = '';
+                        errorMessage.classList.add('hidden');
+                    }
                 });
             });
         });
