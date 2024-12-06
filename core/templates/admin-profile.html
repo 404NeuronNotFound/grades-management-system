@@ -84,7 +84,9 @@
             </div>
         </div>
     
-
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+        
         <!-- Edit Profile Tab (hidden by default) -->
         <div id="edit-profile" class="bg-white rounded-lg shadow-md p-6 hidden">
             <h3 class="text-lg font-medium text-gray-900">Edit Profile</h3>
@@ -102,16 +104,16 @@
                             alt="Profile Picture"
                         >
                     </div>
-                    <label for="{{ form.profile_picture.id_for_label }}" class="cursor-pointer bg-green-700 hover:bg-green-800 text-white py-2 px-4 rounded-md inline-block font-semibold">
+                    <label for="profileImageInput" class="cursor-pointer bg-green-700 hover:bg-green-800 text-white py-2 px-4 rounded-md inline-block font-semibold" onclick="openImageModal()">
                         Update Image
                     </label>
                     <input
                         type="file"
-                        id="{{ form.profile_picture.id_for_label }}"
-                        name="{{ form.profile_picture.name }}"
+                        id="profileImageInput"
+                        name="profile_picture"
                         class="hidden"
                         accept="image/*"
-                        onchange="previewProfileImage(event)"
+                        onchange="loadImage(event)"
                     >
                     <p id="fileName" class="mt-2 text-sm text-gray-600"></p>
                 </div>
@@ -190,9 +192,131 @@
         </div>
     </div>
 
+    
 
 
+    <div id="imageModal" class="fixed inset-0 z-50 flex items-center justify-center  bg-gray-800 bg-opacity-50 hidden">
+        <div class="bg-white p-6 rounded-lg max-w-lg w-full">
+            <h2 class="text-xl font-bold mb-4">Crop Profile Picture</h2>
+            <div class="mb-4">
+                <div class="cropper-container max-h-96 overflow-hidden">
+                    <img id="imageToCrop" class="w-full" src="" alt="Image to crop">
+                </div>
+            </div>
+            <div class="flex justify-between">
+                <button type="button" onclick="document.getElementById('profileImageInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">
+                    Choose File
+                </button>
+                <div>
+                    <button type="button" onclick="closeImageModal()" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-md mr-2">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="cropImage()" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md">
+                        Crop and Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let cropper;
+        let croppedImageBlob;
 
+        function openImageModal() {
+            const imageModal = document.getElementById('imageModal');
+            const currentImage = document.getElementById('previewImage').src;
+            const imageToCrop = document.getElementById('imageToCrop');
+            
+            imageModal.classList.remove('hidden');
+            imageToCrop.src = currentImage;
+
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: 1,
+                viewMode: 1,
+            });
+        }
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('imageToCrop');
+                    img.src = e.target.result;
+                    
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    
+                    cropper = new Cropper(img, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                    });
+
+                    document.getElementById('fileName').textContent = `Selected File: ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function cropImage() {
+            const canvas = cropper.getCroppedCanvas({
+                width: 300,
+                height: 300,
+            });
+            
+            canvas.toBlob((blob) => {
+                // Create a new File object from the blob
+                const croppedFile = new File([blob], 'profile_picture.png', {
+                    type: 'image/png'
+                });
+
+                // Create a new DataTransfer object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(croppedFile);
+
+                // Get the file input and set its files
+                const fileInput = document.getElementById('profileImageInput');
+                fileInput.files = dataTransfer.files;
+
+                // Update preview image
+                document.getElementById('previewImage').src = canvas.toDataURL('image/png');
+            }, 'image/png');
+
+            closeImageModal();
+        }
+
+        function closeImageModal() {
+            const imageModal = document.getElementById('imageModal');
+            imageModal.classList.add('hidden');
+            
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        }
+    </script>
+    <script>
+        function previewProfileImage(event) {
+        const file = event.target.files[0]; // Get the selected file
+        if (file) {
+            const reader = new FileReader(); // Create a FileReader to read the file
+    
+            reader.onload = function (e) {
+                const previewImage = document.getElementById('previewImage');
+                previewImage.src = e.target.result; // Set the image source to the file's data URL
+            };
+    
+            reader.readAsDataURL(file); // Read the file as a data URL
+            document.getElementById('fileName').textContent = `Selected File: ${file.name}`;
+        }
+    }
+    </script>
     <!-- Savechanges Modal -->
 <script>
 
@@ -351,23 +475,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 </style>
 
-<script>
-    function previewProfileImage(event) {
-    const file = event.target.files[0]; // Get the selected file
-    if (file) {
-        const reader = new FileReader(); // Create a FileReader to read the file
 
-        reader.onload = function (e) {
-            const previewImage = document.getElementById('previewImage');
-            previewImage.src = e.target.result; // Set the image source to the file's data URL
-        };
-
-        reader.readAsDataURL(file); // Read the file as a data URL
-        document.getElementById('fileName').textContent = `Selected File: ${file.name}`;
-    }
-}
-
-</script>
 
 
 {% endblock %}
