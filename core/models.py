@@ -431,7 +431,7 @@ class GradingCriterion(models.Model):
         ('PT', 'Performance Tasks'),
         ('QE', 'Quarterly Exam'),
     ]
-    criteria_type = models.CharField(max_length=2, choices=CRITERIA_CHOICES)
+    criteria_type = models.CharField(max_length=2, choices=CRITERIA_CHOICES, unique=True)
 
     def __str__(self):
         return f"{self.get_criteria_type_display()}"
