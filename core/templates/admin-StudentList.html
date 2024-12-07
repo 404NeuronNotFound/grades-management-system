@@ -155,7 +155,14 @@
                                 data-status="{{ student.user.is_active|yesno:'Active,Inactive' }}">
                                 Edit
                             </button>
-                            <button type="button" class="font-medium text-red-600 border border-red-600 py-1 px-3 rounded-md hover-red-override delete-btn" data-modal-target="delete-modal" data-modal-toggle="delete-modal" data-id="{{ student.user.id }}"> Delete </button>
+                            <button type="button" 
+                                class="font-medium text-red-600 border border-red-600 py-1 px-3 rounded-md hover-red-override delete-btn" 
+                                data-modal-target="delete-modal" 
+                                data-modal-toggle="delete-modal" 
+                                data-id="{{ student.user.id }}" 
+                                data-email="{{ student.email }}">
+                                Delete
+                            </button>
                 
                             
                         </td>       
@@ -194,6 +201,7 @@
                 </svg>
                 <p class="mb-4">Are you sure you want to delete this student account?</p>
                 <input type="hidden" id="delete_id">
+                <input type="hidden" id="delete_email">
                 <button type="button" id="confirm-delete-btn" class="text-white bg-red-700 hover:bg-red-800 rounded-lg text-sm px-5 py-2.5">
                     Delete
                 </button>
@@ -475,11 +483,12 @@
                 .then(data => {
                 console.log('Server response:', data);
                 
+                const studentEmail = studentEmailInput.value;
                 // Save message to localStorage before reloading
                 if (data.status === 'success') {
                     localStorage.setItem('flashMessage', JSON.stringify({
                         type: 'success',
-                        text: `Student updated successfully`
+                        text: `Student ${studentEmail} updated successfully`
                     }));
                     
                     // Close the modal and refresh the page
@@ -723,65 +732,92 @@
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Open the delete modal
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const userId = btn.getAttribute('data-id');
-                document.getElementById('delete_id').value = userId;
-                const modal = document.getElementById('delete-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('bg-opacity-50'); // Add background overlay effect
-            });
-        });
-    
-        // Confirm delete action and close modal
-        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
-            const userId = document.getElementById('delete_id').value;
-    
-            fetch('/delete-student/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
-                },
-                body: JSON.stringify({ 'user_id': userId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert(data.message);
-                    clearModalContent();
-                    closeDeleteModal(); // Close modal after deletion
-    
-                    // Redirect to the student list page
-                    window.location.href = '/student-list/';
-                } else {
-                    alert('Error deleting student');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
-    
-        // Close delete modal when clicking cancel or outside the modal
-        function closeDeleteModal() {
+document.addEventListener('DOMContentLoaded', function () {
+    const messagesDiv = document.querySelector('.messages');
+
+    // Display flash message from localStorage if it exists
+    const flashMessage = localStorage.getItem('flashMessage');
+    if (flashMessage) {
+        const { type, text } = JSON.parse(flashMessage);
+        messagesDiv.textContent = text; // Set the message text
+        messagesDiv.classList.add(type); // Add success/error class
+        localStorage.removeItem('flashMessage'); // Remove message after displaying
+    }
+
+    // Open the delete modal
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const userId = btn.getAttribute('data-id');
+            const userEmail = btn.getAttribute('data-email');
+
+            // Set the user ID and email in hidden inputs
+            document.getElementById('delete_id').value = userId;
+            document.getElementById('delete_email').value = userEmail;
+
             const modal = document.getElementById('delete-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('bg-opacity-50'); // Remove background overlay effect
-        }
-    
-        document.getElementById('cancel-delete-btn').addEventListener('click', closeDeleteModal);
-    
-        document.getElementById('delete-modal').addEventListener('click', (event) => {
-            if (event.target === document.getElementById('delete-modal')) {
-                closeDeleteModal();
-            }
+            modal.classList.remove('hidden');
+            modal.classList.add('bg-opacity-50'); // Add background overlay effect
         });
-    
-        function clearModalContent() {
-            document.getElementById('delete_id').value = '';
+    });
+
+    // Confirm delete action
+    document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+        const userId = document.getElementById('delete_id').value;
+        const studentEmail = document.getElementById('delete_email').value;
+
+        fetch('/delete-student/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+            },
+            body: JSON.stringify({ 'user_id': userId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Save success message to localStorage
+                localStorage.setItem('flashMessage', JSON.stringify({
+                    type: 'success',
+                    text: `Successfully deleted student with email ${studentEmail}`
+                }));
+                window.location.href = '/student-list/';
+            } else {
+                // Save error message to localStorage
+                localStorage.setItem('flashMessage', JSON.stringify({
+                    type: 'error',
+                    text: `Error deleting student with email ${studentEmail}`
+                }));
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            localStorage.setItem('flashMessage', JSON.stringify({
+                type: 'error',
+                text: 'An unexpected error occurred. Please try again.'
+            }));
+            window.location.reload();
+        });
+    });
+
+    // Close the delete modal
+    function closeDeleteModal() {
+        const modal = document.getElementById('delete-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('bg-opacity-50');
+    }
+
+    document.getElementById('cancel-delete-btn').addEventListener('click', closeDeleteModal);
+
+    document.getElementById('delete-modal').addEventListener('click', (event) => {
+        if (event.target === document.getElementById('delete-modal')) {
+            closeDeleteModal();
         }
     });
+});
+
+
     </script>
     
     
