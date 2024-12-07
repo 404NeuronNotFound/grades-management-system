@@ -115,51 +115,154 @@
             </tbody>
         </table>
     </div>
+    <div id="pagination-container" class="flex justify-center items-center my-4 w-full"></div>
 </div>
 
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('simple-search');
-        const table = document.querySelector('table');
-        const tableRows = table.querySelectorAll('tbody tr');
-    
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            
-            tableRows.forEach(row => {
-                const fullName = row.querySelector('th').textContent.toLowerCase();
-                if (fullName.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-    
-            // Check if there are any visible rows
-            const visibleRows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
-            const noResultsRow = table.querySelector('tbody tr.no-results');
-            
-            if (visibleRows.length === 0) {
-                if (!noResultsRow) {
-                    const newRow = table.insertRow();
-                    newRow.classList.add('no-results');
-                    const cell = newRow.insertCell();
-                    cell.colSpan = 6;
-                    cell.textContent = 'No administrators found.';
-                    cell.style.textAlign = 'center';
-                } else {
-                    noResultsRow.style.display = '';
-                }
-            } else if (noResultsRow) {
-                noResultsRow.style.display = 'none';
-            }
-        });
-    
-        // Prevent form submission
-        document.getElementById('searchForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-        });
-    });
-</script>
+       const searchForm = document.getElementById('searchForm');
+       const searchInput = document.getElementById('simple-search');
+       const tableBody = document.querySelector('tbody');
+       const paginationContainer = document.getElementById('pagination-container');
+       const itemsPerPage = 10; // Adjust based on your table's configuration
+       let originalRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)')); 
+       let filteredRows = [...originalRows]; // Copy of original rows for filtering
+   
+       // Pagination Function
+       function displayPage(pageNumber) {
+           const startIndex = (pageNumber - 1) * itemsPerPage;
+           const endIndex = startIndex + itemsPerPage;
+   
+           // Hide all rows first
+           originalRows.forEach(row => row.style.display = 'none');
+   
+           // Show only rows for current page
+           filteredRows.slice(startIndex, endIndex).forEach(row => {
+               row.style.display = '';
+           });
+   
+           updatePaginationControls(pageNumber);
+       }
+   
+       // Update Pagination Controls
+       function updatePaginationControls(currentPage) {
+           const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+           const paginationHTML = generatePaginationHTML(currentPage, totalPages);
+           paginationContainer.innerHTML = paginationHTML;
+           attachPaginationEventListeners();
+       }
+   
+       // Generate Pagination HTML
+       function generatePaginationHTML(currentPage, totalPages) {
+           let paginationHTML = `
+               <ul class="inline-flex -space-x-px text-sm">
+                   <li>
+                       <a href="#" data-page="prev" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           Previous
+                       </a>
+                   </li>
+           `;
+   
+           // Generate page numbers
+           for (let page = 1; page <= totalPages; page++) {
+               const isCurrentPage = page === currentPage;
+               const activeClass = isCurrentPage 
+                   ? 'text-green-600 border border-gray-300 bg-green-50 hover:bg-green-100 hover:text-green-700' 
+                   : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';
+   
+               paginationHTML += `
+                   <li>
+                       <a href="#" data-page="${page}" class="flex items-center justify-center px-3 h-8 leading-tight ${activeClass} dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           ${page}
+                       </a>
+                   </li>
+               `;
+           }
+   
+           paginationHTML += `
+                   <li>
+                       <a href="#" data-page="next" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           Next
+                       </a>
+                   </li>
+               </ul>
+           `;
+   
+           return paginationHTML;
+       }
+   
+       // Attach Pagination Event Listeners
+       function attachPaginationEventListeners() {
+           const paginationLinks = paginationContainer.querySelectorAll('a');
+           paginationLinks.forEach(link => {
+               link.addEventListener('click', function(e) {
+                   e.preventDefault();
+                   const pageAction = this.getAttribute('data-page');
+                   
+                   let currentPage = parseInt(document.querySelector('[data-page].text-green-600').getAttribute('data-page'));
+   
+                   if (pageAction === 'prev') {
+                       currentPage = Math.max(1, currentPage - 1);
+                   } else if (pageAction === 'next') {
+                       currentPage = Math.min(Math.ceil(filteredRows.length / itemsPerPage), currentPage + 1);
+                   } else {
+                       currentPage = parseInt(pageAction);
+                   }
+   
+                   displayPage(currentPage);
+               });
+           });
+       }
+   
+       // Function to filter table rows based on search input
+       function filterTable(searchQuery) {
+           searchQuery = searchQuery.toLowerCase();
+           
+           // Reset filtered rows to all original rows
+           filteredRows = originalRows.filter(row => {
+               // Get the text content of name column and email column
+               const fullName = row.querySelector('th:nth-child(3)').textContent.toLowerCase();
+               const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+               
+               // Return rows that match the search query
+               return fullName.includes(searchQuery) || email.includes(searchQuery);
+           });
+           
+           // Show/hide "No results" message
+           const noResultsRow = tableBody.querySelector('.no-results');
+           if (noResultsRow) {
+               noResultsRow.remove();
+           }
+           
+           if (filteredRows.length === 0) {
+               const noResultsRow = document.createElement('tr');
+               noResultsRow.className = 'no-results';
+               noResultsRow.innerHTML = `
+                   <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                       No students found matching "${searchQuery}"
+                   </td>
+               `;
+               tableBody.appendChild(noResultsRow);
+           }
+   
+           // Refresh pagination
+           displayPage(1);
+       }
+       
+       // Handle form submission
+       searchForm.addEventListener('submit', function(e) {
+           e.preventDefault();
+           filterTable(searchInput.value);
+       });
+       
+       // Optional: Real-time search as user types
+       searchInput.addEventListener('input', function() {
+           filterTable(this.value);
+       });
+       
+       // Initial page load
+       displayPage(1);
+   });
+   </script>
 {% endblock %}
