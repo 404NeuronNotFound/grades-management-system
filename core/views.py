@@ -2486,9 +2486,14 @@ def teacher_myClassRecord(request):
                             enrollment = Enrollment(class_obj=selected_class, student=student)
                             enrollment.clean()  # Validation
                             enrollment.save()
+                            enrollment.clean()  # Validation
                             messages.success(request, f"{student} has been added to the class.")
+
+                            return redirect('teacher-myClassRecord')
                         else:
                             messages.warning(request, f"{student} is already in this class.")
+
+                            return redirect('teacher-myClassRecord')
                     except User.DoesNotExist:
                         messages.error(request, f"No student found with email: {student_email}")
                     except ValidationError as e:
