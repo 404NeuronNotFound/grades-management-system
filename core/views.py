@@ -1804,7 +1804,7 @@ def admin_subject(request):
                 form.save()
                 messages.success(request, 'Subject added successfully!')
             else:
-                messages.error(request, 'Failed to add subject. Please check the form.')
+                messages.error(request, 'Failed to add subject. Please check the form make sure its unique.')
         elif 'edit_subject' in request.POST:
             subject_id = request.POST.get('edit_id')
             subject = get_object_or_404(Subject, id=subject_id)
