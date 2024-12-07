@@ -2,21 +2,41 @@
 
 {% block content %}
 {% load static %}
+
+<style>
+    .messages {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .messages.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .messages.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+
 <div class="bg-white rounded-lg shadow-md p-6">
-    {% if messages %}
-    <div class="messages mb-4">
-        {% for message in messages %}
-        <div class="{% if message.tags %}{{ message.tags }}{% endif %} bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3" role="alert">
-            <p class="font-bold">{{ message }}</p>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    
     <div class="card">
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Manage Grading Criteria</h1>
         </div>
-        
+        {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                    <div class="messages {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% endif %}" role="alert">
+                        <p class="font-bold">{{ message }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
         <div class="card-body">
             <button data-modal-target="authentication-modal" data-modal-toggle="authentication-modal" type="button" class="flex items-center focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">

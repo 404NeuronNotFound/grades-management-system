@@ -2,22 +2,34 @@
 
 {% block content %}
 {% load static %}
+<style>
+    .messages {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        display: none; /* Initially hidden */
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    .messages.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .messages.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
 <div class="bg-white rounded-lg shadow-md p-6">
-    {% if messages %}
-    <div class="messages mb-4">
-        {% for message in messages %}
-        <div class="{% if message.tags %}{{ message.tags }}{% endif %} bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3" role="alert">
-            <p class="font-bold">{{ message }}</p>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
     <div class="card">
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Manage Grading Period</h1>
             <h3 class="text-lg font-medium text-gray-900 mb-4">School Year: {{ current_school_year.year|default:"No active school year" }}</h3>
         </div>
         
+        <div class="messages" id="message-container"></div>
         <div class="card-body">
             <button data-modal-target="authentication-modal" data-modal-toggle="authentication-modal" type="button" class="flex items-center focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
@@ -216,34 +228,123 @@
 </div>
 
 
+<!-- Flash Message Display -->
+<div class="messages" id="message-container"></div>
+
+<!-- CSS for styling the messages -->
+<style>
+    .messages {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        display: none; /* Initially hidden */
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    .messages.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .messages.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+
+<!-- JavaScript to handle the flash messages and form submissions -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const editButtons = document.querySelectorAll('.edit-btn');
-        const deleteButtons = document.querySelectorAll('.delete-btn');
+document.addEventListener('DOMContentLoaded', function() {
+    // Show flash message from localStorage (if any)
+    const messageContainer = document.getElementById('message-container');
+    const message = localStorage.getItem('flash_message');
+    const messageType = localStorage.getItem('flash_message_type');
+    
+    if (message && messageType) {
+        messageContainer.textContent = message;
+        messageContainer.classList.add(messageType); // Apply the message type class (success/error)
+        messageContainer.style.display = 'block'; // Show the message
         
-        editButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const period = this.getAttribute('data-period');
-                const isCurrent = this.getAttribute('data-is-current');
-                const id = this.getAttribute('data-id');
+        // Clear the message from localStorage after showing it
+        localStorage.removeItem('flash_message');
+        localStorage.removeItem('flash_message_type');
+        
+        // Hide the message after 5 seconds
+        setTimeout(() => {
+            messageContainer.style.display = 'none';
+        }, 5000);
+    }
+
+    // Handle Add Form Submission
+    const addForm = document.querySelector('#authentication-modal form');
+    if (addForm) {
+        addForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Store the message and its type in localStorage
+                if (data.status === 'success') {
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'success');
+                } else {
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'error');
+                }
+
+                // Close the add modal
+                const modal = this.closest('[aria-hidden="true"]');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
                 
-                document.getElementById('edit_period').value = period;
-                document.getElementById('edit_is_current').value = isCurrent;
-                document.getElementById('edit_id').value = id;
+                // Reload the page to show the message
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                localStorage.setItem('flash_message', 'An error occurred while processing your request.');
+                localStorage.setItem('flash_message_type', 'error');
+                location.reload();
             });
         });
+    }
 
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const id = this.getAttribute('data-id');
-                document.getElementById('delete_id').value = id;
-            });
+    // Handle Edit Button Clicks
+    const editButtons = document.querySelectorAll('.edit-btn');
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const period = this.getAttribute('data-period');
+            const isCurrent = this.getAttribute('data-is-current');
+            const id = this.getAttribute('data-id');
+            
+            document.getElementById('edit_period').value = period;
+            document.getElementById('edit_is_current').value = isCurrent;
+            document.getElementById('edit_id').value = id;
         });
+    });
 
-        // Add form submission handler for edit modal
-        const editForm = document.querySelector('#edit-modal form');
+    // Handle Delete Button Clicks
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.getAttribute('data-id');
+            document.getElementById('delete_id').value = id;
+        });
+    });
+
+    // Handle form submission for Edit Modal
+    const editForm = document.querySelector('#edit-modal form');
+    if (editForm) {
         editForm.addEventListener('submit', function(event) {
             event.preventDefault();
 
@@ -254,63 +355,73 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Store the message and its type in localStorage
                 if (data.status === 'success') {
-                    window.alert(data.message);
-                    
-                    // Close the edit modal
-                    const modal = this.closest('[aria-hidden="true"]');
-                    if (modal) {
-                        modal.classList.add('hidden');
-                    }
-                    
-                    // Reload the page
-                    location.reload();
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'success');
                 } else {
-                    window.alert(data.message);
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'error');
                 }
+
+                // Close the edit modal
+                const modal = this.closest('[aria-hidden="true"]');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
+                
+                // Reload the page to show the message
+                location.reload();
             })
             .catch(error => {
                 console.error('Error:', error);
-                window.alert('An error occurred while processing your request.');
+                localStorage.setItem('flash_message', 'An error occurred while processing your request.');
+                localStorage.setItem('flash_message_type', 'error');
+                location.reload();
             });
         });
-    });
-</script>
+    }
 
-<script>
-document.querySelector('form').addEventListener('submit', function(event) {
-    event.preventDefault();
+    // Handle form submission for Delete Modal
+    const deleteForm = document.querySelector('#delete-modal form');
+    if (deleteForm) {
+        deleteForm.addEventListener('submit', function(event) {
+            event.preventDefault();
 
-    const formData = new FormData(this);
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Use window.alert() instead of just alert()
-            window.alert(data.message);
-            
-            // Close the modal
-            const modal = this.closest('[aria-hidden="true"]');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-            
-            // Reload the page or update the UI
-            location.reload();
-        } else {
-            // Also use window.alert() for error messages
-            window.alert(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        window.alert('An error occurred while processing your request.');
-    });
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Store the message and its type in localStorage
+                if (data.status === 'success') {
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'success');
+                } else {
+                    localStorage.setItem('flash_message', data.message);
+                    localStorage.setItem('flash_message_type', 'error');
+                }
+
+                // Close the delete modal
+                const modal = this.closest('[aria-hidden="true"]');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
+
+                // Reload the page to show the message
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                localStorage.setItem('flash_message', 'An error occurred while processing your request.');
+                localStorage.setItem('flash_message_type', 'error');
+                location.reload();
+            });
+        });
+    }
 });
 
 </script>
-
 {% endblock %}
