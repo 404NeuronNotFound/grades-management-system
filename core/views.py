@@ -203,7 +203,7 @@ from .forms import TeacherForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 
 
-@login_required
+
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
 def teacher_profile(request):
@@ -223,7 +223,8 @@ def teacher_profile(request):
                     user = request.user
                     user.set_password(new_password)
                     user.save()
-                    update_session_auth_hash(request, user)  # Important!
+                    update_session_auth_hash(request, user)  # Preserve session
+                    login(request, user)  # Explicitly log the user back in
                     return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
             else:
                 return JsonResponse({'status': 'error', 'message': 'Invalid form data or password both password incorrect'})
@@ -236,9 +237,9 @@ def teacher_profile(request):
                 return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
             else:
                 return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
-    else:
-        form = TeacherForm(instance=teacher)
-        change_form = PasswordChangeForm()
+            
+    form = TeacherForm(instance=teacher)
+    change_form = PasswordChangeForm()
 
     context = {
         'form': form,
