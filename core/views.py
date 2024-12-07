@@ -3599,12 +3599,40 @@ def unauthorized_access(request):
     return render(request, 'unauthorized.html', status=403)
 
 
+# from django.http import HttpResponse
+# import openpyxl
+# from .models import Enrollment
+
+# def export_class_students(request, class_id):
+#     # Fetch the class and its enrollments
+#     enrollments = Enrollment.objects.filter(class_obj_id=class_id).select_related('student')
+    
+#     # Create a new Excel workbook and sheet
+#     wb = openpyxl.Workbook()
+#     ws = wb.active
+#     ws.title = "Enrolled Students"
+    
+#     # Write headers
+#     ws.append(['Email', 'First Name', 'Last Name'])
+    
+#     # Write student data
+#     for enrollment in enrollments:
+#         student = enrollment.student
+#         ws.append([student.email, student.Firstname, student.Lastname])
+    
+#     # Create the response
+#     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+#     response['Content-Disposition'] = f'attachment; filename="class_{class_id}_students.xlsx"'
+#     wb.save(response)
+    
+#     return response
 from django.http import HttpResponse
 import openpyxl
-from .models import Enrollment
+from .models import Enrollment, Class  # Ensure Class model is imported
 
 def export_class_students(request, class_id):
     # Fetch the class and its enrollments
+    selected_class = Class.objects.get(id=class_id)
     enrollments = Enrollment.objects.filter(class_obj_id=class_id).select_related('student')
     
     # Create a new Excel workbook and sheet
@@ -3620,9 +3648,10 @@ def export_class_students(request, class_id):
         student = enrollment.student
         ws.append([student.email, student.Firstname, student.Lastname])
     
-    # Create the response
+    # Create the response with dynamic filename
+    filename = f"{selected_class.grade_level}_{selected_class.section}_Students.xlsx"
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="class_{class_id}_students.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     
     return response
@@ -3674,7 +3703,7 @@ def import_students(request):
                 except ValidationError as e:
                     messages.error(request, e.message)
 
-            return JsonResponse({'success': True, 'message': 'Students have been successfully enrolled.'})
+            return JsonResponse({'success': True, 'message': 'Students data have been successfully imported please refresh.'})
 
         except Exception as e:
             return JsonResponse({'success': False, 'message': f"An error occurred: {str(e)}"})
