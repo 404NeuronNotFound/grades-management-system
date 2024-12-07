@@ -10,35 +10,46 @@
   background-color: #c53030 !important; /* Equivalent to Tailwind's bg-red-700 */
   color: white !important;
 }
+</style>
 
+<style>
+    .messages {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .messages.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .messages.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
 </style>
 
 
 <div class="bg-white rounded-lg shadow-md p-6">
-    {% if messages %}
-    <div class="messages mb-4">
-        {% for message in messages %}
-        <div class="{% if message.tags %}{{ message.tags }}{% endif %} bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3" role="alert">
-            <p class="font-bold">{{ message }}</p>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    
     <form method="POST" enctype="multipart/form-data">
         <div class="card">
             <div class="text-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Manage School Year</h1>
             </div>
-            
-
+            <div class="messages"></div>
+    
             <div class="card-body">
+
                 <button data-modal-target="authentication-modal" data-modal-toggle="authentication-modal" type="button" class="flex items-center focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                     Insert
                 </button>
-                <div class="flex justify-between items-center mb-4"> 
+                <!-- <div class="flex justify-between items-center mb-4"> 
                     <form class="flex items-center w-64 max-w-2xl ml-0" id="searchForm">   
                         <label for="simple-search" class="sr-only">Search</label>
                         <div class="relative w-80">
@@ -52,62 +63,75 @@
                         </div>
                     </form>
                 </div>
-                <table id="school-year-table" class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">
-                                School Year
-                            </th>
-                            <th scope="col" class="px-6 py-3">
-                                Current
-                            </th>
-                            <th scope="col" class="px-6 py-3">
-                                Action
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for year in years %}
-                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer" >
-                            <td class="px-6 py-4">{{ year.year }}</td>
-                            <td class="px-6 py-4">
-                                {% if year.is_active %}
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Yes
-                                    </span>
-                                {% else %}
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        No
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4">
-                                <button 
-                                    class="font-medium text-blue-600 dark:text-blue-500 border border-blue-600 dark:border-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white py-1 px-3 rounded-md edit-btn"
-                                    data-modal-target="edit-modal" 
-                                    data-modal-toggle="edit-modal"
-                                    data-id="{{ year.id }}" 
-                                    data-year="{{ year.year }}"
-                                    data-is-active="{{ year.is_active|yesno:'True,False' }}">
-                                    Edit
-                                </button>
-                                <button type="button" class="font-medium text-red-600 border border-red-600 py-1 px-3 rounded-md hover-red-override delete-btn"
-                                    data-modal-target="delete-modal" 
-                                    data-modal-toggle="delete-modal"
-                                    data-id="{{ year.id }}" 
-                                    data-year="{{ year.year }}">
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-        
+                 -->
+                <div class="flex space-x-6 mt-10">
+                    <!-- Left: Current School Year Table -->
+                    <div class="w-1/2 bg-gray-50 rounded-lg shadow-md p-4">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 text-center">Current School Year</h2>
+                        <table id="current-school-year-table" class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">School Year</th>
+                                    <th scope="col" class="px-6 py-3">Current</th>
+                                    <th scope="col" class="px-6 py-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for year in years %}
+                                    {% if year.is_active %}
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                                        <td class="px-6 py-4">{{ year.year }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <button class="font-medium text-blue-600 dark:text-blue-500 border border-blue-600 dark:border-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white py-1 px-3 rounded-md edit-btn" data-modal-target="edit-modal" data-modal-toggle="edit-modal" data-id="{{ year.id }}" data-year="{{ year.year }}" data-is-active="{{ year.is_active|yesno:'True,False' }}">Edit</button>
+                                            <button type="button" class="font-medium text-red-600 border border-red-600 py-1 px-3 rounded-md hover-red-override delete-btn" data-modal-target="delete-modal" data-modal-toggle="delete-modal" data-id="{{ year.id }}" data-year="{{ year.year }}">Delete</button>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Right: Not Current School Year Table -->
+                    <div class="w-1/2 bg-gray-50 rounded-lg shadow-md p-4">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 text-center">Previous School Year</h2>
+                        
+                        <table id="not-current-school-year-table" class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">School Year</th>
+                                    <th scope="col" class="px-6 py-3">Current</th>
+                                    <th scope="col" class="px-6 py-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for year in years %}
+                                    {% if not year.is_active %}
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                                        <td class="px-6 py-4">{{ year.year }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">No</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <button class="font-medium text-blue-600 dark:text-blue-500 border border-blue-600 dark:border-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white py-1 px-3 rounded-md edit-btn" data-modal-target="edit-modal" data-modal-toggle="edit-modal" data-id="{{ year.id }}" data-year="{{ year.year }}" data-is-active="{{ year.is_active|yesno:'True,False' }}">Edit</button>
+                                            <button type="button" class="font-medium text-red-600 border border-red-600 py-1 px-3 rounded-md hover-red-override delete-btn" data-modal-target="delete-modal" data-modal-toggle="delete-modal" data-id="{{ year.id }}" data-year="{{ year.year }}">Delete</button>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div id="pagination-container" class="flex justify-center items-center my-4 w-full"></div>
+                    </div>
+                </div>
             </div>
         </div>
-        
     </form>
+</div>
+
   
   <!-- Add modal -->
     <div id="authentication-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
@@ -134,10 +158,10 @@
                             <label for="add_year" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">School Year</label>
                             <input type="text" name="year" id="add_year" 
                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" 
-                                   placeholder="1995-1996" 
+                                   placeholder="2001-2002" 
                                    required 
                                    pattern="^(19|20)\d{2}-(19|20)\d{2}$" 
-                                   title="Enter a valid school year in the format YYYY-YYYY with a one-year gap (e.g., 1995-1996)." 
+                                   title="Enter a valid school year in the format YYYY-YYYY with a one-year gap (e.g., 2001-2002)." 
                                    oninput="validateYear(this)" />
                         </div>
                         <div>
@@ -178,7 +202,13 @@
                         <input type="hidden" name="edit_id" id="edit_id">
                         <div>
                             <label for="edit_year" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">School Year</label>
-                            <input type="text" name="year" id="edit_year" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="1990-1991" required />
+                            <input type="text" name="year" id="edit_year" 
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" 
+                            placeholder="2001-2002" 
+                            required 
+                            pattern="^(19|20)\d{2}-(19|20)\d{2}$" 
+                            title="Enter a valid school year in the format YYYY-YYYY with a one-year gap (e.g., 2001-2002)." 
+                            oninput="validateYear(this)" />
                         </div>
                         <div>
                             <label for="edit_is_active" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Current</label>
@@ -234,6 +264,15 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Display flash message from localStorage if it exists
+        const flashMessage = localStorage.getItem('flashMessage');
+        if (flashMessage) {
+            // Ensure to parse the stored string back into an object
+            const messageData = JSON.parse(flashMessage);
+            displayMessage(messageData.message, messageData.type);
+            localStorage.removeItem('flashMessage'); // Remove message after it's displayed
+        }
+
         const editButtons = document.querySelectorAll('.edit-btn');
         const deleteButtons = document.querySelectorAll('.delete-btn');
         
@@ -258,8 +297,17 @@
             });
         });
     });
+
+    // Function to display messages
+    function displayMessage(message, type) {
+        const messageDiv = document.querySelector('.messages');
+        messageDiv.className = `messages ${type}`; // Add success or error class
+        messageDiv.textContent = message; // Set the message content
+    }
 </script>
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
 <script>
 $(document).ready(function() {
     // Handle form submissions
@@ -272,16 +320,29 @@ $(document).ready(function() {
             url: $(this).attr('action'), // Get the form action URL
             data: formData,
             success: function(response) {
-                alert(response.message); // Alert the success message
-                location.reload(); // Optionally reload the page to reflect changes
+                // Save success message in localStorage
+                const messageData = {
+                    message: response.message,
+                    type: 'success'
+                };
+                localStorage.setItem('flashMessage', JSON.stringify(messageData)); // Store the message in localStorage
+                location.reload(); // Reload the page to reflect changes
             },
             error: function(xhr) {
-                alert(xhr.responseJSON.error || 'An error occurred.'); // Alert the error message
+                // Save error message in localStorage
+                const errorMessage = xhr.responseJSON.error || 'An error occurred.';
+                const messageData = {
+                    message: errorMessage,
+                    type: 'error'
+                };
+                localStorage.setItem('flashMessage', JSON.stringify(messageData)); // Store the error message
+                location.reload(); // Reload the page to show the error message
             }
         });
     });
 });
 </script>
+
 
 
 <script>
@@ -316,7 +377,7 @@ $(document).ready(function() {
             const startYear = parseInt(match[1] + match[2], 10);
             const endYear = parseInt(match[3] + match[4], 10);
             if (endYear - startYear !== 1) {
-                input.setCustomValidity("The years must have a one-year gap (e.g., 1995-1996).");
+                input.setCustomValidity("The years must have a one-year gap (e.g., 2001-2002).");
             } else {
                 input.setCustomValidity(""); // Valid input
             }
@@ -325,5 +386,167 @@ $(document).ready(function() {
         }
     }
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const messagesDiv = document.querySelector('.messages');
+    const flashMessage = localStorage.getItem('flashMessage');
+    
+    if (flashMessage) {
+        const { type, text } = JSON.parse(flashMessage);
+        messagesDiv.textContent = text;
+        messagesDiv.className = `messages ${type}`;
+        
+        // Clear the message after displaying
+        localStorage.removeItem('flashMessage');
+    }
+});
+</script>
 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+       const searchForm = document.getElementById('searchForm');
+       const searchInput = document.getElementById('simple-search');
+       const tableBody = document.querySelector('tbody');
+       const paginationContainer = document.getElementById('pagination-container');
+       const itemsPerPage = 10; // Adjust based on your table's configuration
+       let originalRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)')); 
+       let filteredRows = [...originalRows]; // Copy of original rows for filtering
+   
+       // Pagination Function
+       function displayPage(pageNumber) {
+           const startIndex = (pageNumber - 1) * itemsPerPage;
+           const endIndex = startIndex + itemsPerPage;
+   
+           // Hide all rows first
+           originalRows.forEach(row => row.style.display = 'none');
+   
+           // Show only rows for current page
+           filteredRows.slice(startIndex, endIndex).forEach(row => {
+               row.style.display = '';
+           });
+   
+           updatePaginationControls(pageNumber);
+       }
+   
+       // Update Pagination Controls
+       function updatePaginationControls(currentPage) {
+           const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+           const paginationHTML = generatePaginationHTML(currentPage, totalPages);
+           paginationContainer.innerHTML = paginationHTML;
+           attachPaginationEventListeners();
+       }
+   
+       // Generate Pagination HTML
+       function generatePaginationHTML(currentPage, totalPages) {
+           let paginationHTML = `
+               <ul class="inline-flex -space-x-px text-sm">
+                   <li>
+                       <a href="#" data-page="prev" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           Previous
+                       </a>
+                   </li>
+           `;
+   
+           // Generate page numbers
+           for (let page = 1; page <= totalPages; page++) {
+               const isCurrentPage = page === currentPage;
+               const activeClass = isCurrentPage 
+                   ? 'text-green-600 border border-gray-300 bg-green-50 hover:bg-green-100 hover:text-green-700' 
+                   : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';
+   
+               paginationHTML += `
+                   <li>
+                       <a href="#" data-page="${page}" class="flex items-center justify-center px-3 h-8 leading-tight ${activeClass} dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           ${page}
+                       </a>
+                   </li>
+               `;
+           }
+   
+           paginationHTML += `
+                   <li>
+                       <a href="#" data-page="next" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                           Next
+                       </a>
+                   </li>
+               </ul>
+           `;
+   
+           return paginationHTML;
+       }
+   
+       // Attach Pagination Event Listeners
+       function attachPaginationEventListeners() {
+           const paginationLinks = paginationContainer.querySelectorAll('a');
+           paginationLinks.forEach(link => {
+               link.addEventListener('click', function(e) {
+                   e.preventDefault();
+                   const pageAction = this.getAttribute('data-page');
+                   
+                   let currentPage = parseInt(document.querySelector('[data-page].text-green-600').getAttribute('data-page'));
+   
+                   if (pageAction === 'prev') {
+                       currentPage = Math.max(1, currentPage - 1);
+                   } else if (pageAction === 'next') {
+                       currentPage = Math.min(Math.ceil(filteredRows.length / itemsPerPage), currentPage + 1);
+                   } else {
+                       currentPage = parseInt(pageAction);
+                   }
+   
+                   displayPage(currentPage);
+               });
+           });
+       }
+   
+       // Function to filter table rows based on search input
+       function filterTable(searchQuery) {
+           searchQuery = searchQuery.toLowerCase();
+           
+           // Reset filtered rows to all original rows
+           filteredRows = originalRows.filter(row => {
+               // Get the text content of name column and email column
+               const fullName = row.querySelector('th:nth-child(3)').textContent.toLowerCase();
+               const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+               
+               // Return rows that match the search query
+               return fullName.includes(searchQuery) || email.includes(searchQuery);
+           });
+           
+           // Show/hide "No results" message
+           const noResultsRow = tableBody.querySelector('.no-results');
+           if (noResultsRow) {
+               noResultsRow.remove();
+           }
+           
+           if (filteredRows.length === 0) {
+               const noResultsRow = document.createElement('tr');
+               noResultsRow.className = 'no-results';
+               noResultsRow.innerHTML = `
+                   <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                       No students found matching "${searchQuery}"
+                   </td>
+               `;
+               tableBody.appendChild(noResultsRow);
+           }
+   
+           // Refresh pagination
+           displayPage(1);
+       }
+       
+       // Handle form submission
+       searchForm.addEventListener('submit', function(e) {
+           e.preventDefault();
+           filterTable(searchInput.value);
+       });
+       
+       // Optional: Real-time search as user types
+       searchInput.addEventListener('input', function() {
+           filterTable(this.value);
+       });
+       
+       // Initial page load
+       displayPage(1);
+   });
+   </script>
 {% endblock %}
