@@ -21,7 +21,22 @@
     background-color: #f8d7da;
     color: #721c24;
 }
+.alert {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
 
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
 </style>
 <div class="flex-grow p-4 lg:ml-64 flex space-x-4">
 
@@ -65,7 +80,17 @@
         <!-- Overview Tab -->
         <div id="overview" class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Details</h3>
-            <div class="messages"></div>
+            
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="alert">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <dt class="font-medium text-gray-500">Full Name</dt>
@@ -406,7 +431,6 @@ function confirmPassChanges() {
     // Get the form
     const form = document.querySelector('#change-password form');
     const messageDiv = document.querySelector('.messages');
-    // Create FormData object
     const formData = new FormData(form);
     
     // Send AJAX request
@@ -420,26 +444,35 @@ function confirmPassChanges() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            messageDiv.innerHTML = `<div class="text-green-500">${data.message}</div>`; // Display success message
-            messageDiv.classList.add('success'); // Optionally add a class for styling
-            // Store message in sessionStorage before reloading
+            // Store success message in sessionStorage
             sessionStorage.setItem('message', JSON.stringify({ type: 'success', text: data.message }));
-            location.reload(); // Refresh the page or update the UI
+            location.reload(); // Refresh the page to display the message
         } else {
-            messageDiv.innerHTML = `<div class="text-red-500">${data.message || 'An error occurred while changing the password.'}</div>`; // Display error message
-            messageDiv.classList.add('error'); // Optionally add a class for styling
-            // Store message in sessionStorage before reloading
+            // Store error message in sessionStorage
             sessionStorage.setItem('message', JSON.stringify({ type: 'error', text: data.message || 'An error occurred while changing the password.' }));
-            location.reload(); // Refresh the page or update the UI
+            location.reload(); // Refresh the page to display the message
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        messageDiv.innerHTML = `<div class="text-red-500">An unexpected error occurred. Please try again.</div>`; // Error message
+        // Display error immediately if the request fails
+        messageDiv.innerHTML = `<div class="text-red-500">An unexpected error occurred. Please try again.</div>`;
         messageDiv.classList.add('error');
     });
 }
 
+// Display stored message after page reload
+document.addEventListener('DOMContentLoaded', () => {
+    const messageDiv = document.querySelector('.messages');
+    const storedMessage = sessionStorage.getItem('message');
+    if (storedMessage) {
+        const { type, text } = JSON.parse(storedMessage);
+        const messageClass = type === 'success' ? 'text-green-500' : 'text-red-500';
+        messageDiv.innerHTML = `<div class="${messageClass}">${text}</div>`;
+        messageDiv.classList.add(type);
+        sessionStorage.removeItem('message'); // Clear the message after displaying it
+    }
+});
 // Function to switch between tabs
 function showTab(tabId) {
     // Hide all tabs

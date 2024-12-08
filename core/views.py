@@ -139,13 +139,16 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .forms import AdministratorForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-
+from django.contrib import messages
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['administrator'])
 def profile(request):
     admin = request.user.administrator
 
     if request.method == 'POST':
+
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
         if 'current_password' in request.POST:
             change_form = PasswordChangeForm(request.POST)
             if change_form.is_valid():
@@ -153,7 +156,9 @@ def profile(request):
                 new_password = change_form.cleaned_data['new_password']
                 
                 if not request.user.check_password(current_password):
-                    return JsonResponse({'status': 'error', 'message': 'Current password is incorrect'})
+                    if is_ajax:
+                        return JsonResponse({'status': 'error', 'message': 'Current password is incorrect'})
+                    messages.error(request, 'Current password is incorrect')
                 else:
                     user = request.user
                     user.set_password(new_password)
@@ -161,18 +166,27 @@ def profile(request):
 
                     # Update session without logging out
                     update_session_auth_hash(request, user)
-                    
-                    # Return a success response
-                    return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
+                    messages.success(request, 'Your password was successfully updated!')
             else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid form data or password both password incorrect'})
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})
+                messages.error(request, 'Invalid form data or passwords do not match')
         else:
             form = AdministratorForm(request.POST, request.FILES, instance=admin)
             if form.is_valid():
                 form.save()
-                return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
+                messages.success(request, 'Profile updated successfully!')
             else:
-                return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
+                messages.error(request, 'There was an issue updating the profile')
+
+        # Redirect to reload the page and display messages
+        return redirect('admin-profile')
     
     # If not POST, fallback for GET
     form = AdministratorForm(instance=admin)
@@ -193,13 +207,15 @@ def profile(request):
 
 
 
+
+
 #edit-profile teacher
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .forms import TeacherForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-
+from django.contrib import messages
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
@@ -218,15 +234,20 @@ def teacher_profile(request):
                 new_password = change_form.cleaned_data['new_password']
                 
                 if not request.user.check_password(current_password):
+                    if is_ajax:
+                        return JsonResponse({'status': 'error', 'message': 'Current password is incorrect'})
                     messages.error(request, 'Current password is incorrect')
                 else:
                     user = request.user
                     user.set_password(new_password)
                     user.save()
                     update_session_auth_hash(request, user)  # Preserve session
-                     # Explicitly log the user back in
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
                     messages.success(request, 'Your password was successfully updated!')
             else:
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})
                 messages.error(request, 'Invalid form data or passwords do not match')
                     
         else:
@@ -234,8 +255,12 @@ def teacher_profile(request):
             change_form = PasswordChangeForm()
             if form.is_valid():
                 form.save()
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
                 messages.success(request, 'Profile updated successfully!')
             else:
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
                 messages.error(request, 'There was an issue updating the profile')
         
         return redirect('teacher-profile')  # Redirect to prevent form resubmission
