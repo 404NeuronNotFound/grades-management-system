@@ -65,7 +65,15 @@
         <!-- Overview Tab -->
         <div id="overview" class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Details</h3>
-            <div class="messages"></div>
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="messages {% if message.tags %}{{ message.tags }}{% endif %}" role="alert">
+                    <p>{{ message }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
@@ -322,31 +330,6 @@
 
 
 <script>
-// Function to display flash messages
-function flashMessage(message, type = 'success') {
-    const messageDiv = document.querySelector('.messages');
-    messageDiv.textContent = message; // Set the message text
-    messageDiv.className = `messages ${type}`; // Add appropriate class for styling
-
-    // Store the message in localStorage
-    localStorage.setItem('flashMessage', JSON.stringify({ message, type }));
-}
-
-// Function to show stored flash message on page load
-function displayStoredFlashMessage() {
-    const storedMessage = localStorage.getItem('flashMessage');
-    if (storedMessage) {
-        const { message, type } = JSON.parse(storedMessage);
-        flashMessage(message, type);
-
-        // Clear the message from localStorage after displaying it
-        localStorage.removeItem('flashMessage');
-    }
-}
-
-// Call this function on page load
-document.addEventListener('DOMContentLoaded', displayStoredFlashMessage);
-
 // Function to handle save changes
 function confirmSaveChanges() {
     hideSaveChangesModal();
@@ -359,21 +342,38 @@ function confirmSaveChanges() {
     fetch(form.action, {
         method: 'POST',
         body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value 
+        },
     })
-        .then(response => response.json())
-        .then(data => {
+    .then(response => {
+        // If the response is not a JSON response (like a redirect), 
+        // it means the update was successful
+        if (response.redirected) {
+            flashMessage('Profile updated successfully!', 'success');
+            window.location.href = response.url;
+            return;
+        }
+        
+        // If it's a JSON response, parse it
+        return response.json();
+    })
+    .then(data => {
+        // Handle JSON response if it exists
+        if (data) {
             if (data.status === 'success') {
                 flashMessage(data.message, 'success');
-                location.reload(); // Optionally refresh the page
+                location.reload();
             } else {
                 flashMessage(data.message || 'An error occurred while updating the profile.', 'error');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            flashMessage('An unexpected error occurred. Please try again.', 'error');
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        flashMessage('An error occurred. Please try again.', 'error');
+    });
 }
 
 function confirmPassChanges() {
@@ -385,27 +385,39 @@ function confirmPassChanges() {
     fetch(form.action, {
         method: 'POST',
         body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value 
+        },
     })
-        .then(response => response.json())
-        .then(data => {
-            // Display the flash message
+    .then(response => {
+        // If the response is a redirect, it means update was successful
+        if (response.redirected) {
+            flashMessage('Password changed successfully!', 'success');
+            window.location.href = response.url;
+            return;
+        }
+        
+        // If it's a JSON response, parse it
+        return response.json();
+    })
+    .then(data => {
+        // Handle JSON response if it exists
+        if (data) {
             if (data.status === 'success') {
                 flashMessage(data.message, 'success');
+                window.location.href = '/teacher-profile/';
             } else {
                 flashMessage(data.message || 'An error occurred while changing the password.', 'error');
+                window.location.href = '/teacher-profile/';
             }
-
-            // Redirect to teacher-profile.html
-            window.location.href = '/teacher-profile/';
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            flashMessage('An unexpected error occurred. Please try again.', 'error');
-
-            // Redirect to teacher-profile.html
-            window.location.href = '/teacher-profile/';
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        flashMessage('An error occurred. Please try again.', 'error');
+        window.location.href = '/teacher-profile/';
+    });
 }
 </script>
 

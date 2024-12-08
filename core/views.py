@@ -194,14 +194,11 @@ def profile(request):
 
 
 #edit-profile teacher
-
-
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .forms import TeacherForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-
 
 
 @login_required(login_url='login')
@@ -210,6 +207,9 @@ def teacher_profile(request):
     teacher = request.user.teacher
 
     if request.method == 'POST':
+        # If it's an AJAX request, you might want to handle it differently
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
         if 'current_password' in request.POST:
             change_form = PasswordChangeForm(request.POST)
             form = TeacherForm(instance=teacher)
@@ -218,26 +218,28 @@ def teacher_profile(request):
                 new_password = change_form.cleaned_data['new_password']
                 
                 if not request.user.check_password(current_password):
-                    return JsonResponse({'status': 'error', 'message': 'Current password is incorrect'})
+                    messages.error(request, 'Current password is incorrect')
                 else:
                     user = request.user
                     user.set_password(new_password)
                     user.save()
                     update_session_auth_hash(request, user)  # Preserve session
-                    login(request, user)  # Explicitly log the user back in
-                    return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
+                     # Explicitly log the user back in
+                    messages.success(request, 'Your password was successfully updated!')
             else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid form data or password both password incorrect'})
+                messages.error(request, 'Invalid form data or passwords do not match')
                     
         else:
             form = TeacherForm(request.POST, request.FILES, instance=teacher)
             change_form = PasswordChangeForm()
             if form.is_valid():
                 form.save()
-                return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
+                messages.success(request, 'Profile updated successfully!')
             else:
-                return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
-            
+                messages.error(request, 'There was an issue updating the profile')
+        
+        return redirect('teacher-profile')  # Redirect to prevent form resubmission
+
     form = TeacherForm(instance=teacher)
     change_form = PasswordChangeForm()
 
@@ -247,6 +249,7 @@ def teacher_profile(request):
         'teacher': teacher,
     }
     return render(request, 'teacher-profile.html', context)
+
 
 
 
