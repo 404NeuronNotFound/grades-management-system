@@ -254,13 +254,12 @@ def teacher_profile(request):
 
 
 #edit-profile student
-
-
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .forms import StudentForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.http import JsonResponse
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['student'])
@@ -290,10 +289,12 @@ def student_profile(request):
                     if is_ajax:
                         return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
                     messages.success(request, 'Your password was successfully updated!')
-                    return redirect('student-profile')
             else:
                 if is_ajax:
-                    return JsonResponse({'status': 'error', 'message': 'Invalid form data'})
+                    return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})
+                messages.error(request, 'Invalid form data or passwords do not match')
+            return redirect('student-profile')  # Redirect to prevent form resubmission
+
         else:
             form = StudentForm(request.POST, request.FILES, instance=student)
             change_form = PasswordChangeForm()
@@ -302,10 +303,11 @@ def student_profile(request):
                 if is_ajax:
                     return JsonResponse({'status': 'success', 'message': 'Profile updated successfully!'})
                 messages.success(request, 'Profile updated successfully!')
-                return redirect('student-profile')
             else:
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'There was an issue updating the profile'})
+                messages.error(request, 'There was an issue updating the profile')
+            return redirect('student-profile')  # Redirect to prevent form resubmission
     else:
         form = StudentForm(instance=student)
         change_form = PasswordChangeForm()
@@ -316,6 +318,7 @@ def student_profile(request):
         'student': student,
     }
     return render(request, 'student-profile.html', context)
+
 
 
 

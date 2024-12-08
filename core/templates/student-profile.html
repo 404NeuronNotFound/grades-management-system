@@ -33,6 +33,23 @@
         background-color: #f8d7da;
         color: #721c24;
     }
+    .alert {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
 </style>
 
 
@@ -79,6 +96,16 @@
         <div id="overview" class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Details</h3>
             <div class="messages"></div>
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="alert">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                     <dt class="font-medium text-gray-500">Full Name</dt>
@@ -432,85 +459,52 @@ function showFlashMessage() {
     }
 }
 
-// Confirm Save Changes Function
+// Confirm Save Changes Function for Student Profile
 function confirmSaveChanges() {
-    // Hide modal
     hideSaveChangesModal();
 
     // Get the form
     const form = document.querySelector('#edit-profile form');
-    
-    // Validate form exists
-    if (!form) {
-        displayMessage('error', 'Form not found. Unable to submit.');
-        return;
-    }
-
-    // Create FormData object
     const formData = new FormData(form);
-
-    // Disable submit button to prevent multiple submissions
-    const submitButton = form.querySelector('input[type="submit"]');
-    if (submitButton) {
-        submitButton.disabled = true;
-    }
 
     // Send AJAX request
     fetch(form.action, {
         method: 'POST',
         body: formData,
-        headers: {
+        headers: { 
             'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value 
         },
     })
     .then(response => {
-        // Check if response is OK
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+        // If the response is not a JSON response (like a redirect), 
+        // it means the update was successful
+        if (response.redirected) {
+            flashMessage('Profile updated successfully!', 'success');
+            window.location.href = response.url;
+            return;
         }
+
+        // If it's a JSON response, parse it
         return response.json();
     })
     .then(data => {
-        // Validate response data structure
-        if (!data || typeof data.status === 'undefined') {
-            throw new Error('Invalid server response');
-        }
-
-        // Handle successful response
-        if (data.status === 'success') {
-            displayMessage('success', data.message || 'Profile updated successfully');
-            
-            // Reload page after a short delay
-            setTimeout(() => {
+        // Handle JSON response if it exists
+        if (data) {
+            if (data.status === 'success') {
+                flashMessage(data.message || 'Profile updated successfully!', 'success');
                 location.reload();
-            }, 1500);
-        } else {
-            // Handle server-reported error
-            displayMessage('error', data.message || 'Update failed');
+            } else {
+                flashMessage(data.message || 'An error occurred while updating the profile.', 'error');
+            }
         }
     })
     .catch(error => {
-        // Detailed error logging and user-friendly message
-        console.error('Error details:', error);
-        
-        // Determine specific error message
-        let errorMessage = 'An unexpected error occurred. Please try again.';
-        
-        if (error instanceof TypeError) {
-            errorMessage = 'Network error. Please check your connection.';
-        } else if (error.name === 'AbortError') {
-            errorMessage = 'Request was cancelled.';
-        }
-        
-        displayMessage('error', errorMessage);
-    })
-    .finally(() => {
-        // Re-enable submit button
-        if (submitButton) {
-            submitButton.disabled = false;
-        }
+        console.error('Error:', error);
+        flashMessage('An error occurred. Please try again.', 'error');
     });
 }
+
 
 // Initialize event listeners when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -523,6 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmButton.addEventListener('click', confirmSaveChanges);
     }
 });
+
 </script>
 
 <!-- Password change Modal -->
