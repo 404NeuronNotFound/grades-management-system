@@ -138,8 +138,10 @@ def logoutUser(request):
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .forms import AdministratorForm, PasswordChangeForm
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib import messages
+from django.shortcuts import redirect
+
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['administrator'])
 def profile(request):
@@ -164,11 +166,17 @@ def profile(request):
                     user.set_password(new_password)
                     user.save()
 
-                    # Update session without logging out
-                    update_session_auth_hash(request, user)
+                    # Logout the user after password change
+                    logout(request)
+
                     if is_ajax:
-                        return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
-                    messages.success(request, 'Your password was successfully updated!')
+                        return JsonResponse({
+                            'status': 'success', 
+                            'message': 'Your password was successfully updated! Please log in with your new password.',
+                            'redirect': '/login/'
+                        })
+                    messages.success(request, 'Your password was successfully updated! Please log in with your new password.')
+                    return redirect('login')
             else:
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})
@@ -213,9 +221,10 @@ def profile(request):
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+from django.http import JsonResponse
 from .forms import TeacherForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-from django.contrib import messages
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
@@ -241,10 +250,18 @@ def teacher_profile(request):
                     user = request.user
                     user.set_password(new_password)
                     user.save()
-                    update_session_auth_hash(request, user)  # Preserve session
+
+                    # Logout the user after password change
+                    logout(request)
+
                     if is_ajax:
-                        return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
-                    messages.success(request, 'Your password was successfully updated!')
+                        return JsonResponse({
+                            'status': 'success', 
+                            'message': 'Your password was successfully updated! Please log in with your new password.',
+                            'redirect': '/login/'
+                        })
+                    messages.success(request, 'Your password was successfully updated! Please log in with your new password.')
+                    return redirect('login')
             else:
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})
@@ -282,9 +299,10 @@ def teacher_profile(request):
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+from django.http import JsonResponse
 from .forms import StudentForm, PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-from django.http import JsonResponse
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['student'])
@@ -310,10 +328,18 @@ def student_profile(request):
                     user = request.user
                     user.set_password(new_password)
                     user.save()
-                    update_session_auth_hash(request, user)
+
+                    # Logout the user after password change
+                    logout(request)
+
                     if is_ajax:
-                        return JsonResponse({'status': 'success', 'message': 'Your password was successfully updated!'})
-                    messages.success(request, 'Your password was successfully updated!')
+                        return JsonResponse({
+                            'status': 'success', 
+                            'message': 'Your password was successfully updated! Please log in with your new password.',
+                            'redirect': '/login/'
+                        })
+                    messages.success(request, 'Your password was successfully updated! Please log in with your new password.')
+                    return redirect('login')
             else:
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'Invalid form data or passwords do not match'})

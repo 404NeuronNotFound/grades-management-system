@@ -518,7 +518,31 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 </style>
 
-
+<script>
+    $.ajax({
+    type: 'POST',
+    url: '/admin/profile/',  // your profile URL
+    data: formData,
+    dataType: 'json',
+    success: function(response) {
+        if (response.status === 'success') {
+            // Show success message
+            $('.messages').html('<div class="messages success" role="alert"><p>' + response.message + '</p></div>');
+            
+            // Redirect if a redirect URL is provided
+            if (response.redirect) {
+                window.location.href = response.redirect;
+            }
+        } else {
+            // Show error message
+            $('.messages').html('<div class="messages error" role="alert"><p>' + response.message + '</p></div>');
+        }
+    },
+    error: function() {
+        $('.messages').html('<div class="messages error" role="alert"><p>An error occurred. Please try again.</p></div>');
+    }
+});
+</script>
 
 
 {% endblock %}
