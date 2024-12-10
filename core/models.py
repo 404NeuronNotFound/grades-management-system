@@ -109,7 +109,7 @@ class Class(models.Model):
     school_year = models.ForeignKey(SchoolYear, on_delete=models.CASCADE, related_name='classes')
     grade_level = models.CharField(max_length=50, choices=GradeLvl_Choices)
     section = models.CharField(max_length=50)
-    teacher = models.ForeignKey('Teacher', on_delete=models.CASCADE, null=True, blank=True,)
+    teacher = models.ForeignKey('Teacher', on_delete=models.SET_NULL, null=True, blank=True,)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='classes', null=True, blank=True)
     hide_scores = models.BooleanField(default=False)
 
