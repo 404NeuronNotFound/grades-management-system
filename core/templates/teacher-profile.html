@@ -511,5 +511,15 @@ function confirmPassChanges() {
 }
 
 </script>
+<script>
+    function capitalizeFirstLetter(input) {
+        // Split the input value by spaces to account for multiple words (e.g., "john doe")
+        const words = input.value.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        );
+        // Re-join the words and update the input value
+        input.value = words.join(' ');
+    }
+</script>
 {% endblock %}
 
