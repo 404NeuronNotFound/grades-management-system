@@ -88,13 +88,13 @@
         <!-- Navigation Tabs -->
         <div class="flex border-b mb-4">
             <button id="tab-overview" class="tab-button active-tab px-4 py-2 font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="showTab('overview')">Overview</button>
-            <button id="tab-edit-profile" class="tab-button px-4 py-2 font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="showTab('edit-profile')">Edit Profile</button>
+            <button id="tab-edit-profile" class="tab-button px-4 py-2 font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="showTab('edit-profile')">Edit Account</button>
             <button id="tab-change-password" class="tab-button px-4 py-2 font-medium text-gray-600 hover:text-gray-800 focus:outline-none" onclick="showTab('change-password')">Change Password</button>
         </div>
             
         <!-- Overview Tab -->
         <div id="overview" class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Details</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Account Details</h3>
             
             {% if messages %}
                 <div class="mb-4">
@@ -131,7 +131,7 @@
 
         <!-- Edit Profile Tab (hidden by default) -->
         <div id="edit-profile" class="bg-white rounded-lg shadow-md p-6 hidden">
-            <h3 class="text-lg font-medium text-gray-900">Edit Profile</h3>
+            <h3 class="text-lg font-medium text-gray-900">Edit Account</h3>
         
             <!-- {% if messages %}
                 <ul class="messages">

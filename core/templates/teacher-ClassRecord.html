@@ -865,18 +865,30 @@ document.addEventListener('DOMContentLoaded', function() {
                                 scoresHtml += `<p class="text-gray-900">${score.score}</p>`;
                                 totalsHtml += `<p class="text-gray-900">${score.max_score}</p>`;
                                 editLinkHtml += `<p>
-                                                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline edit-scoremodal" 
-                                                        data-modal-target="edit-scoremodal" 
-                                                        data-modal-toggle="edit-scoremodal"
-                                                        data-activity-name="${score.activity_name}"
-                                                        data-score="${score.score}"
-                                                        data-enrollment-id="${score.enrollment_id}"
-                                                        data-activity-id="${score.activity_id}"
-                                                        data-enrollment-name="${student.student.Firstname} ${student.student.Lastname}"
-                                                        data-max-score="${score.max_score}">Edit
-                                                    </a>
-                                                </p>`;
-                                
+                                                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline edit-scoremodal 
+                                                    {% if not is_current_school_year %}opacity-50 cursor-not-allowed{% endif %}" 
+                                                    {% if not is_current_school_year %}data-disabled="true"{% endif %}
+                                                    data-modal-target="edit-scoremodal" 
+                                                    data-modal-toggle="edit-scoremodal"
+                                                    data-activity-name="${score.activity_name}"
+                                                    data-score="${score.score}"
+                                                    data-enrollment-id="${score.enrollment_id}"
+                                                    data-activity-id="${score.activity_id}"
+                                                    data-enrollment-name="${student.student.Firstname} ${student.student.Lastname}"
+                                                    data-max-score="${score.max_score}">
+                                                    Edit
+                                                </a>
+                                            </p>`;
+
+                                            document.querySelectorAll('.edit-scoremodal').forEach(link => {
+                                                link.addEventListener('click', function(event) {
+                                                    // Prevent the link from being followed if it is disabled
+                                                    if (this.getAttribute('data-disabled') === 'true') {
+                                                        event.preventDefault(); // Prevent the link from being followed
+                                                        event.stopImmediatePropagation(); // Stop further propagation of the event
+                                                    }
+                                                });
+                                            });
                                 if (!enrollmentId) enrollmentId = score.enrollment_id;
                             });
                         } else {
