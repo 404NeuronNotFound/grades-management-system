@@ -123,7 +123,7 @@
                         {% csrf_token %}
                         <div>
                             <label for="add_subject" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Subject Name</label>
-                            <input type="text" name="name" id="add_subject" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Mathematics" required />
+                            <input type="text" name="name" id="add_subject" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" oninput="capitalizeFirstLetter(this)" placeholder="Mathematics" required />
                         </div>
                         <button type="submit" name="add_subject" class="w-full text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Add Subject</button>
                     </form>
@@ -158,7 +158,7 @@
                     <input type="hidden" name="edit_id" id="edit_id">
                     <div>
                         <label for="edit_subject" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Subject Name</label>
-                        <input type="text" name="name" id="edit_subject" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Mathematics" required />
+                        <input type="text" name="name" id="edit_subject" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" oninput="capitalizeFirstLetter(this)" placeholder="Mathematics" required />
                     </div>
                     <button type="submit" name="edit_subject" class="w-full text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Edit Subject</button>
                 </form>
@@ -220,5 +220,14 @@
     });
     </script>
     
-
+    <script>
+        function capitalizeFirstLetter(input) {
+            // Split the input value by spaces to account for multiple words (e.g., "john doe")
+            const words = input.value.split(' ').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            );
+            // Re-join the words and update the input value
+            input.value = words.join(' ');
+        }
+    </script>
 {% endblock %}
