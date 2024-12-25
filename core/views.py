@@ -32,29 +32,35 @@ def dashboard(request):
     total_administrators = User.objects.filter(is_administrator=True).count()
     total_users = User.objects.count()
 
-    sections = Class.objects.values('grade_level', 'section').distinct()
-    grade_sections = {}
-    for section in sections:
-        grade_level = section['grade_level']
-        if grade_level not in grade_sections:
-            grade_sections[grade_level] = 0
-        grade_sections[grade_level] += 1
+    # Get the current active school year, or handle the case if there is none
+    current_school_year = SchoolYear.objects.filter(is_active=True).first()
 
-    total_sections = sum(grade_sections.values())
+    if current_school_year is None:
+        total_sections = 0
+    else:
+        # Filter sections for the current school year
+        sections = Class.objects.filter(school_year=current_school_year).values('grade_level', 'section').distinct()
+
+        grade_sections = {}
+        for section in sections:
+            grade_level = section['grade_level']
+            if grade_level not in grade_sections:
+                grade_sections[grade_level] = 0
+            grade_sections[grade_level] += 1
+
+        total_sections = sum(grade_sections.values())
 
     grade_sections_with_percentage = {}
-    for grade, count in grade_sections.items():
-        percentage = (count / total_sections) * 100 if total_sections > 0 else 0
-        grade_sections_with_percentage[grade] = {
-            'count': count,
-            'percentage': round(percentage, 1)
-        }
+    if total_sections > 0:
+        for grade, count in grade_sections.items():
+            percentage = (count / total_sections) * 100
+            grade_sections_with_percentage[grade] = {
+                'count': count,
+                'percentage': round(percentage, 1)
+            }
 
     total_subjects = Subject.objects.count()
-    subjects = Subject.objects.all()  
-
-    
-    current_school_year = SchoolYear.objects.filter(is_active=True).first()
+    subjects = Subject.objects.all()
 
     context = {
         'total_teachers': total_teachers,
@@ -63,13 +69,14 @@ def dashboard(request):
         'total_users': total_users,
         'total_sections': total_sections,
         'total_subjects': total_subjects,
-        'subjects': subjects,  
-        'current_school_year': current_school_year, 
-        'grade_sections': json.dumps(grade_sections),
+        'subjects': subjects,
+        'current_school_year': current_school_year,
         'grade_sections_with_percentage': grade_sections_with_percentage,
     }
 
     return render(request, 'admin-dashboard.html', context)
+
+
 
 
 
@@ -3770,14 +3777,18 @@ def import_students(request):
 
 from django.shortcuts import render
 from django.contrib.staticfiles.storage import staticfiles_storage
-from .models import Subject, Class
+from .models import Subject, Class, SchoolYear
 
 def landingpage(request):
     # Fetch unique subjects from the database
     subjects = Subject.objects.all()
+    current_school_year = SchoolYear.objects.filter(is_active=True).first()
     
     # Fetch unique sections from the database
-    sections = Class.objects.values_list('section', flat=True).distinct()
+    if current_school_year:
+        sections = Class.objects.filter(school_year=current_school_year).values_list('section', flat=True).distinct()
+    else:
+        sections = []  # No current school year; return an empty list
     
     background_image = staticfiles_storage.url('core/image/test1.jpg')
 

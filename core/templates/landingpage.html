@@ -146,7 +146,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>About</span>
+                  <span>About Us</span>
               </a>
           </li>
           <li>
@@ -466,34 +466,39 @@ p { font-size: 1rem; }
             Our School Sections
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-move-right">
-            {% for section in sections %}
-            <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div class="p-6 flex flex-col items-center text-center h-full">
-                    <div class="w-24 h-24 rounded-full mb-4 flex items-center justify-center 
-                        {% if forloop.first %}bg-indigo-100
-                        {% elif forloop.first|add:1 %}bg-pink-100
-                        {% elif forloop.first|add:2 %}bg-teal-100
-                        {% elif forloop.first|add:3 %}bg-orange-100
-                        {% else %}bg-cyan-100{% endif %}">
-                        <i class="fas fa-users 
-                            {% if forloop.first %}text-indigo-600
-                            {% elif forloop.first|add:1 %}text-pink-600
-                            {% elif forloop.first|add:2 %}text-teal-600
-                            {% elif forloop.first|add:3 %}text-orange-600
-                            {% else %}text-cyan-600{% endif %} 
-                            text-4xl"></i>
+        {% if sections %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-move-right">
+                {% for section in sections %}
+                    <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="p-6 flex flex-col items-center text-center h-full">
+                            <div class="w-24 h-24 rounded-full mb-4 flex items-center justify-center 
+                                {% if forloop.first %}bg-indigo-100
+                                {% elif forloop.first|add:1 %}bg-pink-100
+                                {% elif forloop.first|add:2 %}bg-teal-100
+                                {% elif forloop.first|add:3 %}bg-orange-100
+                                {% else %}bg-cyan-100{% endif %}">
+                                <i class="fas fa-users 
+                                    {% if forloop.first %}text-indigo-600
+                                    {% elif forloop.first|add:1 %}text-pink-600
+                                    {% elif forloop.first|add:2 %}text-teal-600
+                                    {% elif forloop.first|add:3 %}text-orange-600
+                                    {% else %}text-cyan-600{% endif %} 
+                                    text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-3">Section {{ section }}</h3>
+                            <p class="text-gray-600 mb-4 flex-grow">
+                                A dynamic learning environment dedicated to academic excellence, personal growth, and holistic development of students in Section {{ section }}.
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-3">Section {{ section }}</h3>
-                    <p class="text-gray-600 mb-4 flex-grow">
-                        A dynamic learning environment dedicated to academic excellence, personal growth, and holistic development of students in Section {{ section }}.
-                    </p>
-                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        {% else %}
+            <p class="flex justify-center items-center text-gray-500">No sections available for the current school year.</p>
+        {% endif %}
     </div>
 </section>
+
 
 <section id="contact" class="py-20 bg-gradient-to-br from-gray-100 to-gray-200">
     <div class="container mx-auto px-6 lg:px-24">

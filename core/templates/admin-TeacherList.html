@@ -35,9 +35,8 @@
         <h1 class="text-2xl font-bold text-gray-800">Teacher Account List</h1>
     </div>
     
-    
-    <div class="flex justify-between items-center mb-4"> 
-        <div class="messages"></div>
+    <div class="messages"></div>
+    <div class="flex items-center mb-4"> 
         <form class="flex items-center w-64 max-w-2xl ml-0" id="searchForm">   
             <label for="simple-search" class="sr-only">Search</label>
             <div class="relative w-full">
@@ -194,15 +193,15 @@
                             <div class="grid grid-cols-3 gap-4">
                                 <div>
                                     <label for="teacher-Firstname" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Firstname:</label>
-                                    <input id="teacher-Firstname" name="Firstname" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" required pattern="[A-Za-z\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, ''); capitalizeFirstLetter(this)" title="Only letters are allowed">
+                                    <input id="teacher-Firstname" name="Firstname" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" required pattern="[A-Za-zÑñ\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-zÑñ\s]/g, ''); capitalizeFirstLetter(this)"  title="Only letters are allowed">
                                 </div>
                                 <div>
                                     <label for="teacher-Middle-Initial" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Middle Name:</label>
-                                    <input id="teacher-Middle-Initial" name="Middle-Initial" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" pattern="[A-Za-z\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, ''); capitalizeFirstLetter(this)" title="Only letters are allowed">
+                                    <input id="teacher-Middle-Initial" name="Middle-Initial" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" pattern="[A-Za-zÑñ\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-zÑñ\s]/g, ''); capitalizeFirstLetter(this)"  title="Only letters are allowed">
                                 </div>
                                 <div>
                                     <label for="teacher-Lastname" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lastname:</label>
-                                    <input id="teacher-Lastname" name="Lastname" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" required pattern="[A-Za-z\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, ''); capitalizeFirstLetter(this)" title="Only letters are allowed">
+                                    <input id="teacher-Lastname" name="Lastname" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" required pattern="[A-Za-zÑñ\s]+"  style="text-transform: capitalize;" oninput="this.value = this.value.replace(/[^A-Za-zÑñ\s]/g, ''); capitalizeFirstLetter(this)"  title="Only letters are allowed">
                                 </div>
                             </div>
                         </div>
@@ -534,150 +533,185 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-       const searchForm = document.getElementById('searchForm');
-       const searchInput = document.getElementById('simple-search');
-       const tableBody = document.querySelector('tbody');
-       const paginationContainer = document.getElementById('pagination-container');
-       const itemsPerPage = 10; // Adjust based on your table's configuration
-       let originalRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)')); 
-       let filteredRows = [...originalRows]; // Copy of original rows for filtering
-   
-       // Pagination Function
-       function displayPage(pageNumber) {
-           const startIndex = (pageNumber - 1) * itemsPerPage;
-           const endIndex = startIndex + itemsPerPage;
-   
-           // Hide all rows first
-           originalRows.forEach(row => row.style.display = 'none');
-   
-           // Show only rows for current page
-           filteredRows.slice(startIndex, endIndex).forEach(row => {
-               row.style.display = '';
-           });
-   
-           updatePaginationControls(pageNumber);
-       }
-   
-       // Update Pagination Controls
-       function updatePaginationControls(currentPage) {
-           const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
-           const paginationHTML = generatePaginationHTML(currentPage, totalPages);
-           paginationContainer.innerHTML = paginationHTML;
-           attachPaginationEventListeners();
-       }
-   
-       // Generate Pagination HTML
-       function generatePaginationHTML(currentPage, totalPages) {
-           let paginationHTML = `
-               <ul class="inline-flex -space-x-px text-sm">
-                   <li>
-                       <a href="#" data-page="prev" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-                           Previous
-                       </a>
-                   </li>
-           `;
-   
-           // Generate page numbers
-           for (let page = 1; page <= totalPages; page++) {
-               const isCurrentPage = page === currentPage;
-               const activeClass = isCurrentPage 
-                   ? 'text-green-600 border border-gray-300 bg-green-50 hover:bg-green-100 hover:text-green-700' 
-                   : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';
-   
-               paginationHTML += `
-                   <li>
-                       <a href="#" data-page="${page}" class="flex items-center justify-center px-3 h-8 leading-tight ${activeClass} dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-                           ${page}
-                       </a>
-                   </li>
-               `;
-           }
-   
-           paginationHTML += `
-                   <li>
-                       <a href="#" data-page="next" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-                           Next
-                       </a>
-                   </li>
-               </ul>
-           `;
-   
-           return paginationHTML;
-       }
-   
-       // Attach Pagination Event Listeners
-       function attachPaginationEventListeners() {
-           const paginationLinks = paginationContainer.querySelectorAll('a');
-           paginationLinks.forEach(link => {
-               link.addEventListener('click', function(e) {
-                   e.preventDefault();
-                   const pageAction = this.getAttribute('data-page');
-                   
-                   let currentPage = parseInt(document.querySelector('[data-page].text-green-600').getAttribute('data-page'));
-   
-                   if (pageAction === 'prev') {
-                       currentPage = Math.max(1, currentPage - 1);
-                   } else if (pageAction === 'next') {
-                       currentPage = Math.min(Math.ceil(filteredRows.length / itemsPerPage), currentPage + 1);
-                   } else {
-                       currentPage = parseInt(pageAction);
-                   }
-   
-                   displayPage(currentPage);
-               });
-           });
-       }
-   
-       // Function to filter table rows based on search input
-       function filterTable(searchQuery) {
-           searchQuery = searchQuery.toLowerCase();
-           
-           // Reset filtered rows to all original rows
-           filteredRows = originalRows.filter(row => {
-               // Get the text content of name column and email column
-               const fullName = row.querySelector('th:nth-child(3)').textContent.toLowerCase();
-               const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-               
-               // Return rows that match the search query
-               return fullName.includes(searchQuery) || email.includes(searchQuery);
-           });
-           
-           // Show/hide "No results" message
-           const noResultsRow = tableBody.querySelector('.no-results');
-           if (noResultsRow) {
-               noResultsRow.remove();
-           }
-           
-           if (filteredRows.length === 0) {
-               const noResultsRow = document.createElement('tr');
-               noResultsRow.className = 'no-results';
-               noResultsRow.innerHTML = `
-                   <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                       No students found matching "${searchQuery}"
-                   </td>
-               `;
-               tableBody.appendChild(noResultsRow);
-           }
-   
-           // Refresh pagination
-           displayPage(1);
-       }
-       
-       // Handle form submission
-       searchForm.addEventListener('submit', function(e) {
-           e.preventDefault();
-           filterTable(searchInput.value);
-       });
-       
-       // Optional: Real-time search as user types
-       searchInput.addEventListener('input', function() {
-           filterTable(this.value);
-       });
-       
-       // Initial page load
-       displayPage(1);
-   });
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('simple-search');
+    const tableBody = document.querySelector('tbody');
+    const paginationContainer = document.getElementById('pagination-container');
+    const itemsPerPage = 10;
+    let originalRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
+    let filteredRows = [...originalRows];
+
+    function displayPage(pageNumber) {
+        const startIndex = (pageNumber - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        
+        originalRows.forEach(row => row.style.display = 'none');
+        
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.style.display = '';
+        });
+
+        updatePaginationControls(pageNumber);
+    }
+
+    function generatePaginationHTML(currentPage, totalPages) {
+        let paginationHTML = `
+            <ul class="inline-flex -space-x-px text-sm">
+                <li>
+                    <a href="#" data-page="prev" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        Previous
+                    </a>
+                </li>`;
+
+        function addPageButton(page) {
+            const isCurrentPage = page === currentPage;
+            const activeClass = isCurrentPage 
+                ? 'text-green-600 border border-gray-300 bg-green-50 hover:bg-green-100 hover:text-green-700' 
+                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';
+
+            return `
+                <li>
+                    <a href="#" data-page="${page}" class="flex items-center justify-center px-3 h-8 leading-tight ${activeClass} dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        ${page}
+                    </a>
+                </li>`;
+        }
+
+        // Always show first page
+        paginationHTML += addPageButton(1);
+
+        if (totalPages <= 6) {
+            // If total pages is 6 or less, show all pages
+            for (let page = 2; page <= totalPages; page++) {
+                paginationHTML += addPageButton(page);
+            }
+        } else {
+            // Show first 5 pages
+            if (currentPage <= 4) {
+                for (let page = 2; page <= 5; page++) {
+                    paginationHTML += addPageButton(page);
+                }
+                paginationHTML += `
+                    <li>
+                        <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300">
+                            ...
+                        </span>
+                    </li>`;
+                paginationHTML += addPageButton(totalPages);
+            } 
+            // Show last 5 pages
+            else if (currentPage > totalPages - 4) {
+                paginationHTML += `
+                    <li>
+                        <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300">
+                            ...
+                        </span>
+                    </li>`;
+                for (let page = totalPages - 4; page <= totalPages; page++) {
+                    paginationHTML += addPageButton(page);
+                }
+            } 
+            // Show current page and surrounding pages
+            else {
+                paginationHTML += `
+                    <li>
+                        <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300">
+                            ...
+                        </span>
+                    </li>`;
+                for (let page = currentPage - 1; page <= currentPage + 1; page++) {
+                    paginationHTML += addPageButton(page);
+                }
+                paginationHTML += `
+                    <li>
+                        <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300">
+                            ...
+                        </span>
+                    </li>`;
+                paginationHTML += addPageButton(totalPages);
+            }
+        }
+
+        paginationHTML += `
+                <li>
+                    <a href="#" data-page="next" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        Next
+                    </a>
+                </li>
+            </ul>`;
+
+        return paginationHTML;
+    }
+
+    function updatePaginationControls(currentPage) {
+        const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+        const paginationHTML = generatePaginationHTML(currentPage, totalPages);
+        paginationContainer.innerHTML = paginationHTML;
+        attachPaginationEventListeners();
+    }
+
+    function attachPaginationEventListeners() {
+        const paginationLinks = paginationContainer.querySelectorAll('a');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const pageAction = this.getAttribute('data-page');
+                const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+                
+                let currentPage = parseInt(document.querySelector('[data-page].text-green-600').getAttribute('data-page'));
+
+                if (pageAction === 'prev') {
+                    currentPage = Math.max(1, currentPage - 1);
+                } else if (pageAction === 'next') {
+                    currentPage = Math.min(totalPages, currentPage + 1);
+                } else {
+                    currentPage = parseInt(pageAction);
+                }
+
+                displayPage(currentPage);
+            });
+        });
+    }
+
+    function filterTable(searchQuery) {
+        searchQuery = searchQuery.toLowerCase();
+        
+        filteredRows = originalRows.filter(row => {
+            const fullName = row.querySelector('th:nth-child(3)').textContent.toLowerCase();
+            const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            return fullName.includes(searchQuery) || email.includes(searchQuery);
+        });
+
+        const noResultsRow = tableBody.querySelector('.no-results');
+        if (noResultsRow) {
+            noResultsRow.remove();
+        }
+        
+        if (filteredRows.length === 0) {
+            const noResultsRow = document.createElement('tr');
+            noResultsRow.className = 'no-results';
+            noResultsRow.innerHTML = `
+                <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                    No students found matching "${searchQuery}"
+                </td>`;
+            tableBody.appendChild(noResultsRow);
+        }
+
+        displayPage(1);
+    }
+
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        filterTable(searchInput.value);
+    });
+
+    searchInput.addEventListener('input', function() {
+        filterTable(this.value);
+    });
+
+    displayPage(1);
+});
    </script>
 
 
