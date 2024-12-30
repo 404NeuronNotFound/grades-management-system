@@ -15,7 +15,7 @@
 <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-1xl mt-6">
     <form method="get" action="{% url 'teacher-dashboard' %}">
         <div class="flex justify-between items-center mb-4">
-            <h5 class="text-xl font-medium text-gray-900">Top 10 Students</h5>
+            <h5 class="text-xl font-medium text-gray-900 text-center">Top 10 Students</h5>
             <div class="flex space-x-2">
                 <!-- Section Dropdown -->
                 <select name="section" onchange="this.form.submit()" class="text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64">
@@ -35,10 +35,6 @@
 
     <!-- Flex container for chart and table -->
     <div class="flex flex-col md:flex-row gap-6">
-        <!-- Bar Chart -->
-        <div class="w-full md:w-1/4">
-            <canvas id="topStudentsChart" class="w-full"></canvas>
-        </div>
 
         <!-- Table of Top Students -->
         <div class="w-full md:w-2/3 space-y-2">

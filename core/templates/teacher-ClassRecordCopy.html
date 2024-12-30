@@ -1,0 +1,1112 @@
+{% extends 'teacher-base.html' %}
+
+{% block content %}
+{% load static %}
+{% load custom_filters %}
+
+<style>
+    .hover-red-override:hover {
+  background-color: #c53030 !important; /* Equivalent to Tailwind's bg-red-700 */
+  color: white !important;
+}
+
+</style>
+<style>
+    .messages {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .messages.success {
+        background-color: #d4edda; /* Green background */
+        color: #155724; /* Green text */
+        border: 1px solid #c3e6cb; /* Green border */
+    }
+
+    .messages.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+
+<div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Display messages if any -->
+     
+    
+    <div class="card">
+        <div class="card-header text-center">
+            <div class="text-center mb-6">
+                {% if selected_class %}
+                <h1 class="text-2xl font-bold text-gray-800">My Class Record for {{ selected_class.grade_level }} {{ selected_class.section }} - {{ selected_class.subject.name }}</h1>
+                {% else %}
+                <h1 class="text-2xl font-bold text-gray-800">No class selected</h1>
+                {% endif %}
+            </div>
+        </div>
+        {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                    <div class="bg-green-100 border-t border-b border-green-500 text-green-700 px-4 py-3 message" role="alert">
+                        <p class="font-bold">{{ message }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            <script>
+                // Timeout to hide messages after 5 seconds
+                setTimeout(function() {
+                    const messageDivs = document.querySelectorAll('.message');
+                    messageDivs.forEach(function(message) {
+                        message.style.display = 'none';
+                    });
+                }, 5000);  // 5000 milliseconds = 5 seconds
+            </script>
+        {% endif %}
+        
+        <div id="message-container" class="mt-4"></div>
+        
+        <div style="display: none;" id="flash-message" class=" font-bold bg-green-100 border-t border-b border-green-500 text-green-700 px-4 py-3 message mb-4" role="alert">
+            <p class="font-bold">{{ message }}</p>
+        </div>
+        
+    
+        <div id="success-message" class=" hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">Score updated successfully!</span>
+        </div>
+
+        
+        
+        <div class="card-body">
+            <div class="flex items-center space-x-4">
+                <!-- Import Button -->
+                 
+                <button id="open-import-modal" class="shadow-md flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-3 mb-2 {% if not is_current_school_year %}opacity-50 cursor-not-allowed{% endif %}" {% if not is_current_school_year %}disabled{% endif %}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 transform rotate-180">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12l6-6m0 0l6 6m-6-6v12" />
+                    </svg>
+                    Import Excel
+                </button>
+                
+                <!-- <form method="POST" enctype="multipart/form-data" id="import-form">
+                    {% csrf_token %}
+                    <input type="file" name="excel_file" accept=".xlsx, .xls" required id="excel-file-input" />
+                    <button type="submit" class="shadow-md flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-3 mb-2" id="import-button">
+                        Import Excel
+                    </button>
+                </form> -->
+                {% if selected_class %}
+                    <a href="{% url 'export_class_students' selected_class.id %}" 
+                        class="shadow-md flex items-center justify-center focus:outline-none text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-3 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12l6-6m0 0l6 6m-6-6v12" />
+                        </svg>
+                        Export Excel
+                    </a>
+             
+                {% else %}
+                    <button disabled 
+                            class="shadow-md flex items-center justify-center focus:outline-none text-white bg-gray-500 cursor-not-allowed font-medium rounded-lg text-sm px-6 py-3 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 3.75L9 3.75M12 12V3.75m0 0L15 7.5M12 3.75L9 7.5" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 15.75v4.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 20.25v-4.5" />
+                        </svg>
+                        Export Excel
+                    </button>
+                {% endif %}
+                
+            </div>            
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <button data-modal-target="add-modal" data-modal-toggle="add-modal" 
+                            type="button" 
+                            class="shadow-md flex items-center justify-center focus:outline-none text-white bg-green-700 hover:bg-green-800 
+                                focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 mb-2 
+                                dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 
+                                {% if not is_current_school_year %}opacity-50 cursor-not-allowed{% endif %}" 
+                            {% if not is_current_school_year %}disabled{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add Student
+                    </button>
+                </div>
+                
+                
+                <div class="flex flex-col items-end space-y-2">
+                    <button id="activity-dropdownButton" data-dropdown-toggle="activity-dropdown" type="button" class="shadow-md items-center focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 {% if not is_current_school_year %}opacity-50 cursor-not-allowed{% endif %}" {% if not is_current_school_year %}disabled{% endif %}>
+                        Activity Action
+                    </button>
+                    
+                    <!-- Dropdown menu -->
+                    <div id="activity-dropdown" class="z-10 hidden text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+                        <ul class="py-2" aria-labelledby="dropdownButton">
+                        <li>
+                            <a href="#" data-modal-target="add-activitymodal" data-modal-toggle="add-activitymodal" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Add Activity</a>
+                        </li>
+                        <li>
+                            <a href="#" data-modal-target="edit-activitymodal" data-modal-toggle="edit-activitymodal" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Edit Activity</a>
+                        </li>
+                        <li>
+                            <a href="#" data-modal-target="delete-activitymodal" data-modal-toggle="delete-activitymodal" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Delete Activity</a>
+                        </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   id="scoreToggle" 
+                                   class="sr-only peer" 
+                                   {% if not selected_class.hide_scores %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 
+                                        peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full 
+                                        peer dark:bg-gray-700 peer-checked:after:translate-x-full 
+                                        peer-checked:after:border-white after:content-[''] after:absolute 
+                                        after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 
+                                        after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
+                                        dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Show Scores
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!-- Add this right after your table opening div -->
+<div class="mb-4">
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px" aria-label="Grading Periods">
+            {% for period in grading_periods %}
+            <button 
+                class="grading-tab px-6 py-3 border-b-2 text-sm font-medium {% if period.is_current %}text-blue-600 border-blue-600{% else %}text-gray-500 border-transparent hover:border-gray-300 hover:text-gray-700{% endif %}"
+                data-period-id="{{ period.id }}"
+                {% if period.is_current %}data-active="true"{% endif %}>
+                {{period.get_period_display }}
+            </button>
+            {% endfor %}
+        </nav>
+    </div>
+</div>
+
+<!-- Modify your existing table to include period-specific classes -->
+<div class="overflow-x-auto relative">
+    {% for period in grading_periods %}
+    <div class="grading-content" id="period-{{ period.id }}" {% if not period.is_current %}style="display: none;"{% endif %}>
+        <table id="studentScoresTable-{{ period.id }}" data-class-id="{{ selected_class.id }}" class="w-full text-sm text-left text-gray-500">
+            <thead>
+                <!-- Main Categories Row -->
+                <tr class="text-xs text-gray-700 uppercase">
+                    <th rowspan="2" class="px-8 py-6 bg-gray-50 border text-center">Student Names</th>
+                    {% for criterion in subject_criteria %}
+                        {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                        {% with period_activities=activities|filter_by_period:period.id %}
+                            {% if period_activities %}
+                            <th colspan="{{ period_activities|length }}" class="px-6 py-3 text-center border 
+                                {% if criterion.grading_criterion.criteria_type == 'WW' %}bg-yellow-50
+                                {% elif criterion.grading_criterion.criteria_type == 'PT' %}bg-green-50
+                                {% else %}bg-purple-50{% endif %}">
+                                {{ criterion.grading_criterion.get_criteria_type_display }} ({{ criterion.weightage }}%)
+                            </th>
+                            {% endif %}
+                        {% endwith %}
+                        {% endwith %}
+                    {% endfor %}
+                    <th rowspan="2" class="px-6 py-3 bg-gray-50 border text-center">Action</th>
+                </tr>
+                
+                <!-- Activities Row -->
+                <tr class="text-xs text-gray-700">
+                    {% for criterion in subject_criteria %}
+                        {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                        {% with period_activities=activities|filter_by_period:period.id %}
+                            {% for activity in period_activities %}
+                            <th class="px-4 py-2 border text-center min-w-[150px]
+                                {% if criterion.grading_criterion.criteria_type == 'WW' %}bg-yellow-50
+                                {% elif criterion.grading_criterion.criteria_type == 'PT' %}bg-green-50
+                                {% else %}bg-purple-50{% endif %}">
+                                <!-- Activity Name -->
+                                <div class="font-medium truncate whitespace-nowrap">{{ activity.name }}</div>
+                                <!-- Activity Date -->
+                                <div class="text-xs text-gray-500 truncate whitespace-nowrap">{{ activity.date_created|date:"M d, Y" }}</div>
+                                <!-- Max Score -->
+                                <div class="text-xs text-gray-600 truncate whitespace-nowrap">Max: {{ activity.max_score }}</div>
+                            </th>
+                            {% endfor %}
+                        {% endwith %}
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+                
+            </thead>
+            
+            <tbody id="studentScoresBody-{{ period.id }}">
+                {% for enrollment in enrollments %}
+                <tr class="text-sm" data-enrollment-id="{{ enrollment.id }}">
+                    <td class="px-6 py-3 border whitespace-nowrap">
+                        {{ enrollment.student.Lastname }}, {{ enrollment.student.Firstname }}
+                    </td>
+                    {% for criterion in subject_criteria %}
+                    {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                    {% with period_activities=activities|filter_by_period:period.id %}
+                        {% for activity in period_activities %}
+                        <td class="px-4 py-2 border text-center score-cell {% if not period.is_current %}bg-gray-50{% endif %}"
+                            data-activity-id="{{ activity.id }}"
+                            data-max-score="{{ activity.max_score }}"
+                            data-period-id="{{ period.id }}"
+                            {% if not period.is_current %}data-readonly="true"{% endif %}>
+                            {% with score=score_dict|get_item:enrollment.id|get_item:activity.id %}
+                            {% if score %}
+                                {{ score.score }}
+                            {% else %}
+                                --
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        {% endfor %}
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+                    <td class="px-4 py-2 border text-center">
+                        <div class="flex justify-center gap-x-4">
+                            <button 
+                                class="px-3 py-1 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring focus:ring-red-300 remove-student-btn whitespace-nowrap"
+                                data-enrollment-id="{{ enrollment.id }}"
+                                data-student-name="{{ enrollment.student.Firstname }} {{ enrollment.student.Lastname }}">
+                                Remove
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabs = document.querySelectorAll('.grading-tab');
+        const contents = document.querySelectorAll('.grading-content');
+        let currentPeriodId = null;
+        
+        // Function to switch tabs
+        function switchTab(tab) {
+            // Remove active state from all tabs
+            tabs.forEach(t => {
+                t.classList.remove('text-blue-600', 'border-blue-600');
+                t.classList.add('text-gray-500', 'border-transparent');
+            });
+            
+            // Add active state to clicked tab
+            tab.classList.remove('text-gray-500', 'border-transparent');
+            tab.classList.add('text-blue-600', 'border-blue-600');
+            
+            // Hide all content
+            contents.forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Show selected content
+            const periodId = tab.dataset.periodId;
+            currentPeriodId = periodId;
+            const content = document.getElementById(`period-${periodId}`);
+            if (content) {
+                content.style.display = 'block';
+            }
+            
+            // Initialize scores for the current period
+            initializeScoreCells(periodId);
+        }
+        
+        // Add click handlers to tabs
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab));
+            if (tab.dataset.active === 'true') {
+                currentPeriodId = tab.dataset.periodId;
+                switchTab(tab);
+            }
+        });
+    
+        // Fetch scores from the database
+        async function fetchScores(classId) {
+            try {
+                const response = await fetch(`/get-scores/${classId}/`);
+                const data = await response.json();
+                if (data.success) {
+                    return data.scores;
+                } else {
+                    console.error('Error fetching scores:', data.error);
+                    return {};
+                }
+            } catch (error) {
+                console.error('Error fetching scores:', error);
+                return {};
+            }
+        }
+    
+        // Create input cell for score editing
+        function createScoreInput(cell, currentValue, maxScore, enrollmentId, activityId) {
+            if (cell.dataset.readonly === 'true') return;
+    
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'w-20 px-2 py-1 text-center border rounded';
+            input.value = currentValue === '--' ? '' : currentValue;
+            input.min = 0;
+            input.max = maxScore;
+            input.step = 0.01;
+            
+            input.dataset.originalValue = currentValue;
+            input.dataset.enrollmentId = enrollmentId;
+            input.dataset.activityId = activityId;
+            
+            const controls = document.createElement('div');
+            controls.className = 'flex justify-center gap-2 mt-2';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'px-2 py-1 text-xs text-white bg-green-500 rounded hover:bg-green-600';
+            saveBtn.textContent = '✓';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'px-2 py-1 text-xs text-white bg-red-500 rounded hover:bg-red-600';
+            cancelBtn.textContent = '✕';
+            
+            controls.appendChild(saveBtn);
+            controls.appendChild(cancelBtn);
+            
+            cell.textContent = '';
+            cell.appendChild(input);
+            cell.appendChild(controls);
+            
+            input.focus();
+            
+            saveBtn.addEventListener('click', () => handleSave(cell, input));
+            cancelBtn.addEventListener('click', () => handleCancel(cell, input));
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSave(cell, input);
+                if (e.key === 'Escape') handleCancel(cell, input);
+            });
+        }
+    
+        // Display score in cell
+        function displayScore(cell, score, maxScore, enrollmentId, activityId) {
+            if (cell.dataset.readonly === 'true') {
+                cell.textContent = score === null || score === undefined || score === '' ? '--' : score;
+                return;
+            }
+    
+            const scoreDisplay = document.createElement('div');
+            scoreDisplay.className = 'score-display cursor-pointer hover:bg-gray-100 p-2 rounded';
+            
+            const displayValue = score === null || score === undefined || score === '' ? '--' : score;
+            scoreDisplay.textContent = displayValue;
+            
+            if (displayValue !== '--') {
+                const scorePercentage = (parseFloat(score) / parseFloat(maxScore)) * 100;
+                if (scorePercentage >= 90) {
+                    scoreDisplay.classList.add('text-green-600');
+                } else if (scorePercentage >= 75) {
+                    scoreDisplay.classList.add('text-yellow-600');
+                } else {
+                    scoreDisplay.classList.add('text-red-600');
+                }
+            }
+            
+            cell.dataset.maxScore = maxScore;
+            cell.dataset.activityId = activityId;
+            
+            cell.textContent = '';
+            cell.appendChild(scoreDisplay);
+            
+            if (!cell.dataset.readonly) {
+                makeScoreCellEditable(cell);
+            }
+        }
+    
+        // Initialize cells with scores from database for a specific period
+        async function initializeScoreCells(periodId) {
+            const classId = document.querySelector('[data-class-id]')?.dataset.classId;
+            if (!classId) return;
+    
+            const scores = await fetchScores(classId);
+            const periodContent = document.getElementById(`period-${periodId}`);
+            if (!periodContent) return;
+    
+            const cells = periodContent.querySelectorAll('td[data-activity-id]');
+            
+            cells.forEach(cell => {
+                const enrollmentId = cell.closest('tr').dataset.enrollmentId;
+                const activityId = cell.dataset.activityId;
+                const maxScore = cell.dataset.maxScore;
+                
+                const scoreKey = `${enrollmentId}-${activityId}`;
+                const score = scores[scoreKey];
+                
+                displayScore(cell, score, maxScore, enrollmentId, activityId);
+            });
+        }
+    
+        // Handle saving score
+        async function handleSave(cell, input) {
+            const score = parseFloat(input.value);
+            const maxScore = parseFloat(input.max);
+            const enrollmentId = input.dataset.enrollmentId;
+            const activityId = input.dataset.activityId;
+            
+            if (isNaN(score)) {
+                alert('Please enter a valid number');
+                return;
+            }
+            
+            if (score > maxScore) {
+                alert(`Score cannot exceed maximum of ${maxScore}`);
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('enrollment_id', enrollmentId);
+                formData.append('activity_id', activityId);
+                formData.append('score', score);
+                
+                const response = await fetch('/update-score/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayScore(cell, score.toString(), maxScore, enrollmentId, activityId);
+                } else {
+                    alert(data.error || 'Failed to update score');
+                }
+            } catch (error) {
+                console.error('Error saving score:', error);
+                alert('Failed to save score. Please try again.');
+            }
+        }
+    
+        // Handle cancel edit
+        function handleCancel(cell, input) {
+            displayScore(cell, input.dataset.originalValue, input.max, input.dataset.enrollmentId, input.dataset.activityId);
+        }
+    
+        // Make cell editable on click
+        function makeScoreCellEditable(cell) {
+            if (cell.dataset.readonly === 'true') return;
+    
+            cell.addEventListener('click', function(e) {
+                if (cell.querySelector('input')) return; // Already in edit mode
+                const currentValue = cell.textContent.trim();
+                const maxScore = cell.dataset.maxScore;
+                const enrollmentId = cell.closest('tr').dataset.enrollmentId;
+                const activityId = cell.dataset.activityId;
+                createScoreInput(cell, currentValue, maxScore, enrollmentId, activityId);
+            });
+        }
+    
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    
+        // Initialize the active tab's content
+        const activeTab = document.querySelector('.grading-tab[data-active="true"]');
+        if (activeTab) {
+            switchTab(activeTab);
+        }
+    });
+    </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    // Select all remove buttons
+    const removeButtons = document.querySelectorAll(".remove-student-btn");
+
+    removeButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            const enrollmentId = button.getAttribute("data-enrollment-id");
+            const studentName = button.getAttribute("data-student-name");
+
+            // Confirm removal
+            if (confirm(`Are you sure you want to remove ${studentName}?`)) {
+                // Send POST request to the server
+                fetch("/remove-student/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFToken() // Include CSRF token
+                    },
+                    body: JSON.stringify({ enrollment_id: enrollmentId }) // Send enrollment_id
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message); // Display success message
+                        // Optionally, remove the row from the table
+                        button.closest("tr").remove();
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An unexpected error occurred. Please try again.");
+                });
+            }
+        });
+    });
+
+    // Helper function to get the CSRF token
+    function getCSRFToken() {
+        const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+        return csrfToken ? csrfToken.value : "";
+    }
+});
+
+
+</script>
+<!-- Add Student -->
+<div id="add-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Add Student to the class</h3>
+                <button type="button" class="end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="add-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            
+            <div class="p-4 md:p-5">
+                <form id="addStudentForm" class="space-y-4" method="post" onsubmit="return validateForm()">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="student-email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Add Student Via Registered Email
+                        </label>
+                        <input 
+                            type="email" 
+                            id="student-email" 
+                            name="student_email" 
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+                            placeholder="Enter student email..." 
+                            required>
+                    </div>
+                    <div class="flex justify-end">
+                        <button 
+                            type="submit" 
+                            id="addStudentButton" 
+                            class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                            Add Student
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add  Activity-->
+<div id="add-activitymodal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Add Activity</h3>
+                <button type="button" class="end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="add-activitymodal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            
+            <div class="p-4 md:p-5">
+                <form id="addActivityForm" class="space-y-4" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_activity" value="1">
+                    <div class="mb-4">
+                        <label for="grading_period" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Grading Period</label>
+                        <select id="grading_period" name="grading_period" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
+                            <option value="" selected disabled>Select Grading Period</option>
+                            {% for period in grading_periods %}
+                                <option value="{{ period.id }}">{{  period.get_period_display }}</option>
+                            {% empty %}
+                                <option disabled>No active grading periods available</option>
+                            {% endfor %}
+                        </select>
+                        
+                    </div>
+                    <div class="mb-4">
+                        <label for="subject_criterion" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Subject Criterion</label>
+                        <select id="subject_criterion" name="subject_criterion" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
+                            <option value="" selected disabled>Select Subject Criterion</option>
+                            {% for criterion in subject_criteria %}
+                                <option value="{{ criterion.id }}">
+                                    {{ criterion.subject.name }} - {{ criterion.grading_criterion.criteria_type }} ({{ criterion.weightage }}%)
+                                </option>
+                            {% empty %}
+                                <option value="" disabled>No criteria available</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4" >
+                        <label for="activity_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Activity Name</label>
+                        <input type="text" id="activity_name" name="activity_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Activity Name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="max_score" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Score</label>
+                        <input type="number" id="max_score" name="max_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Max Score" required min="1" step="0.01">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Add Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Activity -->
+<div id="edit-activitymodal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Activity</h3>
+                <button type="button" class="end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="edit-activitymodal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">      
+                <form id="editActivityForm" class="space-y-4" method="post" action="{% url 'edit_activity' 0 %}">
+                    <div class="mb-4">
+                        <label for="edit_activity_select" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Activity to Edit</label>
+                        <select id="edit_activity_select" class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="" selected disabled>Select Activity</option>
+                            {% for activity in activities %}
+                                <option 
+                                    value="{{ activity.id }}" 
+                                    data-name="{{ activity.name }}"
+                                    data-subject-criterion="{{ activity.subject_criterion.id }}"
+                                    data-max-score="{{ activity.max_score }}">
+                                    {{ activity.name }} - {{ activity.subject_criterion.subject.name }} - {{ activity.subject_criterion.grading_criterion.criteria_type }} - {{ activity.max_score }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% csrf_token %}
+                    <input type="hidden" name="edit_activity" value="1">
+                    <div class="mb-4">
+                        <label for="subject_criterion" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Subject Criterion</label>
+                        <select id="subject_criterion" name="subject_criterion" class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="" selected disabled>Select Subject Criterion</option>
+                            {% for criterion in subject_criteria %}
+                                <option value="{{ criterion.id }}">
+                                    {{ criterion.subject.name }} - {{ criterion.grading_criterion.criteria_type }} ({{ criterion.weightage }}%)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="activity_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Edit Activity Name</label>
+                        <input type="text" id="activity_name" name="activity_name" class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Edit Activity Name">
+                    </div>
+                    <div class="mb-4">
+                        <label for="max_score" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Score</label>
+                        <input type="number" id="max_score" name="max_score" class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Max Score" min="1" step="0.01">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Edit Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Delete Activity -->
+<div id="delete-activitymodal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Delete Activity</h3>
+                <button type="button" class="end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="delete-activitymodal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">      
+                <form id="deleteActivityForm" class="space-y-4" method="post" action="{% url 'edit_activity' 0 %}">
+                    <div class="mb-4">
+                        <label for="delete_activity_select" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Activity to Delete</label>
+                        <select id="delete_activity_select" class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option value="" selected disabled>Select Activity</option>
+                            {% for activity in activities %}
+                                <option 
+                                    value="{{ activity.id }}" 
+                                    data-name="{{ activity.name }}"
+                                    data-subject-criterion="{{ activity.subject_criterion.id }}"
+                                    data-max-score="{{ activity.max_score }}">
+                                    {{ activity.name }} - {{ activity.subject_criterion.subject.name }} - {{ activity.subject_criterion.grading_criterion.criteria_type }} - {{ activity.max_score }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" id="confirm-delete-button" class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Delete Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Activity -->
+<div id="delete-activity-confirmation" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50">
+    <div class="relative p-4 w-full max-w-md">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Confirm Delete
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="delete-activity-confirmation">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>                
+            </div>
+            <div class="p-4 md:p-5">
+                <p class="mb-4 text-gray-500 dark:text-gray-300">Are you sure you want to delete this Activity?</p>
+                <form id="delete-form" method="post" action="{% url 'delete_activity' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_id" id="delete_id">
+                    <div class="flex justify-end space-x-4">
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Comfirm Student Remove -->
+<div id="remove-studentmodal" class="hidden fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50">
+    <div class="relative p-4 w-full max-w-md">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Confirm Remove
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="remove-studentmodal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>                
+            </div>
+            <div class="p-4 md:p-5">
+                <form id="remove-form" method="post" action="{% url 'teacher-myClassRecord' %}">
+                    {% csrf_token %}
+                    <p class="mb-4 text-gray-500 dark:text-gray-300">Are you sure you want to remove this Student from your class?</p>         
+                    <input type="hidden" name="remove_id" id="remove_id" value="{{ enrollment.id }}">
+                    <div class="flex justify-end space-x-4">
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300">Remove</button>
+                    </div>
+                </form>                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loading-spinner" class="hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="animate-spin h-5 w-5 mr-2 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path fill="none" stroke="currentColor" stroke-width="2" d="M4 12l8 8 8-8"></path>
+    </svg>
+    <span>Processing...</span>
+</div>
+
+<!-- <div id="import-modal" class="fixed top-0 left-0 right-0 bottom-0 bg-gray-800 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-1/3">
+        <h2 class="text-xl font-bold mb-4">Import Students</h2>
+        <form method="POST" enctype="multipart/form-data" id="import-form">
+            {% csrf_token %}
+            <label for="excel-file-input" class="block text-sm font-medium text-gray-700 mb-2">Choose Excel File</label>
+            <input type="file" name="excel_file" accept=".xlsx, .xls" required id="excel-file-input" class="border rounded-lg w-full p-2 mb-4" />
+            <div class="flex justify-end">
+                <button type="button" id="close-modal-btn" class="mr-4 text-gray-500 hover:text-gray-700">Cancel</button>
+                <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-3">
+                    Import Excel
+                </button>
+            </div>
+        </form>
+    </div>
+</div> -->
+
+<div id="import-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 border-b rounded-t">
+                <h3 class="text-xl font-semibold text-gray-900">Import Students</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" id="close-import-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-4">
+                <form id="import-form" class="space-y-4" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <!-- File Input -->
+                    <div>
+                        <label for="excel-file-input" class="block mb-2 text-sm font-medium text-gray-900">Choose Excel File</label>
+                        <input type="file" id="excel-file-input" name="excel_file" accept=".xlsx, .xls" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    </div>
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                            Import Excel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Open Modal
+    document.getElementById('open-import-modal').addEventListener('click', function () {
+        document.getElementById('import-modal').classList.remove('hidden');
+    });
+
+    // Close Modal
+    document.getElementById('close-import-modal').addEventListener('click', function () {
+        document.getElementById('import-modal').classList.add('hidden');
+    });
+
+    // Handle Form Submission
+document.getElementById('import-form').addEventListener('submit', function (event) {
+    event.preventDefault(); // Prevent default form submission
+    const formData = new FormData(this);
+    const fileInput = document.getElementById('excel-file-input');
+
+    if (fileInput.files.length === 0) {
+        alert("Please select an Excel file.");
+        return;
+    }
+
+    // AJAX request to submit the file
+    fetch("{% url 'import_students' %}", {
+        method: 'POST',
+        body: formData,
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            const messageContainer = document.getElementById('message-container');
+            if (data.success) {
+                messageContainer.innerHTML = `<div class="font-bold bg-green-100 border-t border-b border-green-500 text-green-700 px-4 py-3 mb-4">${data.message}</div>`;
+                document.getElementById('import-modal').classList.add('hidden'); // Close modal
+
+                // Auto-refresh the page after showing the message
+                if (data.message === "Students have been successfully enrolled.") {
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000); // Delay of 2 seconds
+                }
+            } else {
+                messageContainer.innerHTML = `<div class="text-red-600 font-semibold">${data.message}</div>`;
+                document.getElementById('import-modal').classList.add('hidden'); // Close modal
+            }
+        })
+        .catch((error) => {
+            document.getElementById('message-container').innerHTML = `<div class="text-red-600 font-semibold">An error occurred while processing the file.</div>`;
+            document.getElementById('import-modal').classList.add('hidden'); // Close modal
+        });
+});
+
+</script>
+
+<script>
+    document.getElementById('scoreToggle').addEventListener('change', function() {
+        const classId = '{{ selected_class.id }}';
+        fetch(`/api/class/${classId}/toggle-scores/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page to update the scores display
+                location.reload();
+            } else {
+                console.error('Failed to toggle score visibility:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+    </script>
+
+<!-- Delete Activity -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteActivityModal = document.getElementById('delete-activitymodal');
+    const deleteActivitySelect = document.getElementById('delete_activity_select');
+    const confirmDeleteButton = document.getElementById('confirm-delete-button');
+    const deleteConfirmationModal = document.getElementById('delete-activity-confirmation');
+    const deleteForm = document.getElementById('delete-form');
+    const deleteIdInput = document.getElementById('delete_id');
+
+    // Function to toggle modal visibility
+    function toggleModal(modal) {
+        modal.classList.toggle('hidden');
+    }
+
+    // Open delete confirmation modal
+    confirmDeleteButton.addEventListener('click', function() {
+        const selectedActivity = deleteActivitySelect.options[deleteActivitySelect.selectedIndex];
+        if (selectedActivity.value) {
+            deleteIdInput.value = selectedActivity.value;
+            toggleModal(deleteActivityModal);
+            toggleModal(deleteConfirmationModal);
+        } else {
+            alert('Please select an activity to delete.');
+        }
+    });
+
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === deleteActivityModal || event.target === deleteConfirmationModal) {
+            toggleModal(deleteActivityModal);
+            toggleModal(deleteConfirmationModal);
+        }
+    });
+
+    // Close buttons for modals
+    document.querySelectorAll('[data-modal-toggle]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal-toggle');
+            toggleModal(document.getElementById(modalId));
+        });
+    });
+
+    // Handle form submission
+    deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        this.submit();
+    });
+});
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editActivitySelect = document.getElementById('edit_activity_select');
+        const editActivityForm = document.getElementById('editActivityForm');
+        const subjectCriterionSelect = document.getElementById('subject_criterion');
+        const activityNameInput = document.getElementById('activity_name');
+        const maxScoreInput = document.getElementById('max_score');
+    
+        editActivitySelect.addEventListener('change', function () {
+            const activityId = editActivitySelect.value;
+            if (activityId) {
+                fetch(`/api/get_activity_details/${activityId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subjectCriterionSelect.value = data.subject_criterion_id;
+                        activityNameInput.value = data.name;
+                        maxScoreInput.value = data.max_score;
+    
+                        // Update the form action with the correct activity ID
+                        editActivityForm.action = `/edit_activity/${activityId}/`;
+                    })
+                    .catch(error => console.error('Error fetching activity details:', error));
+            }
+        });
+    });
+</script>
+    <script>
+       document.addEventListener('DOMContentLoaded', function() {
+    const addStudentForm = document.getElementById('addStudentForm');
+    const addStudentButton = document.getElementById('addStudentButton');
+
+    addStudentForm.addEventListener('submit', function(event) {
+        // Disable the button immediately to prevent multiple submissions
+        addStudentButton.disabled = true;
+        addStudentButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+        // Optional: Add a loading spinner or text
+        addStudentButton.innerHTML = 'Adding...';
+
+        // You can use a timeout to re-enable the button if the submission fails
+        setTimeout(() => {
+            addStudentButton.disabled = false;
+            addStudentButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            addStudentButton.innerHTML = 'Add Student';
+        }, 5000); // Re-enable after 5 seconds
+    });
+
+    // Optional: Clear form after successful submission or modal close
+    const modalCloseButtons = document.querySelectorAll('[data-modal-toggle="add-modal"]');
+    modalCloseButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            addStudentForm.reset();
+        });
+    });
+});
+    </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const flashMessage = localStorage.getItem("flashMessage");
+        if (flashMessage) {
+            const messageContainer = document.getElementById("flash-message");
+            messageContainer.textContent = flashMessage;
+            messageContainer.style.display = "block";
+            localStorage.removeItem("flashMessage");  // Clear the message after displaying
+        }
+    });
+</script>
+{% endblock %}

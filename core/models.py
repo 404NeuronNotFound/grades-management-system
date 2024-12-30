@@ -417,8 +417,15 @@ class GradingPeriod(models.Model):
     class Meta:
         unique_together = ('school_year', 'period')
 
+    def save(self, *args, **kwargs):
+        if self.is_current:
+            # Set is_current=False for all other GradingPeriods in the same school_year
+            GradingPeriod.objects.filter(school_year=self.school_year, is_current=True).update(is_current=False)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.school_year.year} - {self.get_period_display()}"
+
 
 from decimal import Decimal
 from django.db import models, transaction
@@ -497,6 +504,13 @@ class Activity(models.Model):
             raise ValidationError("Only current grading periods can be selected.")
         if not self.id and Activity.objects.filter(class_obj=self.class_obj, subject_criterion=self.subject_criterion, name=self.name).exists():
             raise ValidationError("An activity with this name already exists for this class and subject criterion.")
+        
+        if self.subject_criterion.grading_criterion.criteria_type == 'QE':
+            if Activity.objects.filter(
+                grading_period=self.grading_period,
+                subject_criterion__grading_criterion__criteria_type='QE'
+            ).exclude(pk=self.pk).exists():
+                raise ValidationError("Only one quarterly exam can be created per grading period.")
 
     def create_initial_scores(self):
         from .models import Score, Enrollment

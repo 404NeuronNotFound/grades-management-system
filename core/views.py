@@ -2430,58 +2430,57 @@ def teacher_prevClassAdvisory(request):
 #     return render(request, 'teacher-ClassRecord.html', context)
 
 
+# #get_different score
+# from django.http import JsonResponse
+# from django.shortcuts import get_object_or_404
+# from .models import Class, Enrollment, Score, Activity, GradingPeriod
 
-#get_different score
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from .models import Class, Enrollment, Score, Activity, GradingPeriod
+# def get_scores(request):
+#     selected_class_id = request.GET.get('class_id')
+#     selected_criteria = request.GET.get('criteria')
+#     selected_grading_period = request.GET.get('grading_period')
+    
+#     selected_class = get_object_or_404(Class, id=selected_class_id)
+#     grading_period = get_object_or_404(GradingPeriod, period=selected_grading_period, school_year=selected_class.school_year)
+    
+#     activities = Activity.objects.filter(
+#         class_obj=selected_class,
+#         subject_criterion__grading_criterion__criteria_type=selected_criteria,
+#         grading_period=grading_period
+#     ).order_by('date_created')
+    
+#     enrollments = Enrollment.objects.filter(class_obj=selected_class)
+    
+#     scores_data = []
+#     for enrollment in enrollments:
+#         student_scores = []
+#         for activity in activities:
+#             score = Score.objects.filter(enrollment=enrollment, activity=activity).first()
+#             student_scores.append({
+#                 'activity_name': activity.name,
+#                 'date_created': activity.date_created.strftime('%Y-%m-%d'),
+#                 'score': score.score if score else '--',  # Default to "--" if no score exists
+#                 'max_score': activity.max_score,
+#                 'enrollment_id': enrollment.id,
+#                 'activity_id': activity.id,
+#             })
 
-def get_scores(request):
-    selected_class_id = request.GET.get('class_id')
-    selected_criteria = request.GET.get('criteria')
-    selected_grading_period = request.GET.get('grading_period')
-    
-    selected_class = get_object_or_404(Class, id=selected_class_id)
-    grading_period = get_object_or_404(GradingPeriod, period=selected_grading_period, school_year=selected_class.school_year)
-    
-    activities = Activity.objects.filter(
-        class_obj=selected_class,
-        subject_criterion__grading_criterion__criteria_type=selected_criteria,
-        grading_period=grading_period
-    ).order_by('date_created')
-    
-    enrollments = Enrollment.objects.filter(class_obj=selected_class)
-    
-    scores_data = []
-    for enrollment in enrollments:
-        student_scores = []
-        for activity in activities:
-            score = Score.objects.filter(enrollment=enrollment, activity=activity).first()
-            if score:
-                student_scores.append({
-                    'activity_name': activity.name,
-                    'date_created': activity.date_created.strftime('%Y-%m-%d'),
-                    'score': score.score,
-                    'max_score': activity.max_score,
-                    'enrollment_id': enrollment.id,
-                    'activity_id': activity.id,
-                })
         
-        scores_data.append({
-            'student': {
-                'Firstname': enrollment.student.Firstname,
-                'Lastname': enrollment.student.Lastname,
-            },
-            'scores': student_scores,
-            'enrollment_id': enrollment.id,  # Always include the enrollment ID
-        })
+#         scores_data.append({
+#             'student': {
+#                 'Firstname': enrollment.student.Firstname,
+#                 'Lastname': enrollment.student.Lastname,
+#             },
+#             'scores': student_scores,
+#             'enrollment_id': enrollment.id,  # Always include the enrollment ID
+#         })
     
-    return JsonResponse({
-        'selected_class': selected_class.id,
-        'selected_criteria': selected_criteria,
-        'selected_grading_period': selected_grading_period,
-        'scores_data': scores_data,
-    })
+#     return JsonResponse({
+#         'selected_class': selected_class.id,
+#         'selected_criteria': selected_criteria,
+#         'selected_grading_period': selected_grading_period,
+#         'scores_data': scores_data,
+#     })
 
 
 
@@ -2495,6 +2494,7 @@ from .models import Class, Student, Enrollment, Score, Activity, SubjectCriterio
 from .decorators import allowed_users
 from django.db import transaction
 import json
+from django.db.models import Case, When, IntegerField
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
@@ -2510,32 +2510,67 @@ def teacher_myClassRecord(request):
     if selected_class_id:
         try:
             selected_class = get_object_or_404(Class, id=selected_class_id, teacher=request.user.teacher)
-            enrollments = Enrollment.objects.filter(class_obj=selected_class).select_related('student')
 
-            # Fetch scores for each enrollment
+            # Fetch subject criteria and explicitly order them: WW -> PT -> QE
+            subject_criteria = SubjectCriterion.objects.filter(
+                subject=selected_class.subject
+            ).select_related('grading_criterion').order_by(
+                Case(
+                    When(grading_criterion__criteria_type='WW', then=1),
+                    When(grading_criterion__criteria_type='PT', then=2),
+                    When(grading_criterion__criteria_type='QE', then=3),
+                    default=4,
+                    output_field=IntegerField()
+                )
+            )
+
+            # Fetch all activities, ordered by creation date
+            activities = (
+                Activity.objects.filter(class_obj=selected_class)
+                .select_related('subject_criterion__grading_criterion', 'grading_period')
+                .order_by('date_created')
+            )
+
+
+            # Initialize grouped_activities with empty lists for each criterion type
+            grouped_activities = {
+                'WW': [],
+                'PT': [],
+                'QE': []
+            }
+
+            # Group activities by criterion type
+            for activity in activities:
+                criterion_type = activity.subject_criterion.grading_criterion.criteria_type
+                grouped_activities[criterion_type].append(activity)
+
+            # Fetch enrollments with scores
+            enrollments = Enrollment.objects.filter(
+                class_obj=selected_class
+            ).select_related('student')
+
+            # Create score dictionary for each enrollment
             for enrollment in enrollments:
-                enrollment.scores = Score.objects.filter(enrollment=enrollment).select_related('activity')
-                # If scores are hidden and user is not the teacher, mask the scores
-                if selected_class.hide_scores and not request.user.teacher == selected_class.teacher:
-                    for score in enrollment.scores:
+                scores = Score.objects.filter(
+                    enrollment=enrollment
+                ).select_related('activity')
+                
+                enrollment.score_dict = {}
+                for score in scores:
+                    if selected_class.hide_scores and not request.user.teacher == selected_class.teacher:
                         score.score = "Hidden"
-                else:
-                    for score in enrollment.scores:
-                        score.enrollment_id = enrollment.id
-                        score.activity_id = score.activity.id
+                    score.enrollment_id = enrollment.id
+                    score.activity_id = score.activity.id
+                    enrollment.score_dict[score.activity_id] = score
 
-            # Fetch subject criteria for the class subject
-            subject_criteria = SubjectCriterion.objects.filter(subject=selected_class.subject)
-
-
+            # Check current school year
             current_school_year = SchoolYear.objects.filter(is_active=True).first()
-            is_current_school_year = selected_class.school_year == current_school_year
+            is_current_school_year = selected_class.school_year == current_school_year if current_school_year else False
 
-
-            current_grading_periods = GradingPeriod.objects.filter(school_year=selected_class.school_year)
-
-            all_students = Student.objects.all().order_by('Lastname', 'Firstname')
-            enrolled_students = set(enrollment.student for enrollment in enrollments)
+            # Fetch grading periods for the selected class's school year
+            current_grading_periods = GradingPeriod.objects.filter(
+                school_year=selected_class.school_year
+            )
 
 
 
@@ -2672,19 +2707,26 @@ def teacher_myClassRecord(request):
 
     
     enrollments = Enrollment.objects.filter(class_obj=selected_class)
+    
+    # Fetch the current grading period for the selected class's school year
+    current_grading_periods = GradingPeriod.objects.filter(
+        school_year=selected_class.school_year,
+        is_current=True
+    )
 
     context = {
         'selected_class': selected_class,
         'enrollments': enrollments,
         'subject_criteria': subject_criteria,
+        'grouped_activities': grouped_activities,
         'grading_periods': current_grading_periods,
-        'activities': Activity.objects.filter(class_obj=selected_class) if selected_class else [],
-        'students': Student.objects.filter(enrollments__class_obj=selected_class) if selected_class else [],
         'hide_scores': selected_class.hide_scores if selected_class else False,
-        'is_current_school_year': is_current_school_year,
+        'is_current_school_year': is_current_school_year if 'is_current_school_year' in locals() else False,
+        'grading_periods': current_grading_periods,
     }
 
-    return render(request, 'teacher-ClassRecord.html', context)
+    return render(request, 'teacher-ClassRecordCopy.html', context)
+
 
 
 from django.http import JsonResponse
@@ -2765,6 +2807,7 @@ def update_score(request):
     enrollment_id = request.POST.get('enrollment_id')
     activity_id = request.POST.get('activity_id')
     new_score = request.POST.get('score')
+    
 
     print(f"Received data: enrollment_id={enrollment_id}, activity_id={activity_id}, new_score={new_score}")
 
@@ -2810,7 +2853,32 @@ def update_score(request):
         print(f"Unexpected error: {str(e)}")
         return JsonResponse({'success': False, 'error': 'An unexpected error occurred.'}, status=500)
 
-
+@login_required(login_url='login')
+@allowed_users(allowed_roles=['teacher'])
+def get_scores(request, class_id):
+    try:
+        class_obj = get_object_or_404(Class, id=class_id, teacher=request.user.teacher)
+        scores = {}
+        
+        # Fetch all scores for the class with related data
+        score_objects = Score.objects.filter(
+            enrollment__class_obj=class_obj
+        ).select_related('enrollment', 'activity').values(
+            'enrollment_id', 
+            'activity_id', 
+            'score'
+        )
+        
+        # Format scores as a dictionary
+        for score in score_objects:
+            key = f"{score['enrollment_id']}-{score['activity_id']}"
+            scores[key] = float(score['score'])
+            
+        return JsonResponse({'success': True, 'scores': scores})
+        
+    except Exception as e:
+        print(f"Error fetching scores: {str(e)}")  # For debugging
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 

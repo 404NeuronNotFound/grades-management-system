@@ -50,7 +50,7 @@ urlpatterns = [
 
 
 
-    path('api/get_scores/', views.get_scores, name='get_scores'),
+    # path('api/get_scores/', views.get_scores, name='get_scores'),
     path('api/get_activity_details/<int:activity_id>/', views.get_activity_details, name='get_activity_details'),
     path('edit_activity/<int:activity_id>/', views.edit_activity, name='edit_activity'),
     path('delete-activity/', views.delete_activity, name='delete_activity'),
@@ -60,7 +60,7 @@ urlpatterns = [
     path('delete-teacher/', views.delete_teacher, name='delete_teacher'),
     path('api/class/<int:class_id>/toggle-scores/', views.toggle_scores, name='toggle_scores'),
     #path('export-report-card/', views.export_report_card, name='export-report-card'),
-
+    path('get-scores/<int:class_id>/', views.get_scores, name='get-scores'),
 
     path('unauthorized/', views.unauthorized_access, name='unauthorized'),
 
