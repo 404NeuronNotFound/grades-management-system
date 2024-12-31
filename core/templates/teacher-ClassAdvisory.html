@@ -45,6 +45,7 @@
                         <th scope="col" class="px-6 py-3">Status</th>
                         <th scope="col" class="px-6 py-3">Students List</th>
                         <th scope="col" class="px-6 py-3">Grade Calculation</th>
+                        <th scope="col" class="px-6 py-3">Summary</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,6 +81,14 @@
                                     </a>
                                     
                                 </td>
+                                <td class="px-6 py-4">
+                                    <a 
+                                        href="{% url 'teacher-QuarterSummary' %}?class={{ advisory.id }}" 
+                                        class="font-medium text-blue-600 dark:text-blue-500 border border-blue-600 dark:border-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 hover:text-white py-1 px-3 rounded-md view-btn"
+                                    >
+                                        Summary
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                     {% else %}
@@ -98,24 +107,26 @@
 
 <div id="gradingPeriodModal" tabindex="-1" aria-hidden="true" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50 hidden">
     <div class="bg-white rounded-lg shadow-lg p-4 w-2/4 max-w-md">
-        
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Select Grading Period that want to Calculate</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Select Current Grading Period</h3>
         <form id="gradingPeriodForm">
             <div class="mb-4">
-                <label for="grading_period" class="block text-sm font-medium text-gray-700">Grading Period</label>
+                <label for="grading_period" class="block text-sm font-medium text-gray-700">Current Grading Period</label>
                 <select id="grading_period" name="grading_period" class="form-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full">
                     {% if grading_periods %}
                         {% for period in grading_periods %}
                             <option value="{{ period.id }}">{{ period }}</option>
                         {% endfor %}
                     {% else %}
-                        <option value="">No grading periods available for this school year</option>
+                        <option value="">No current grading period set</option>
                     {% endif %}
                 </select>
             </div>
+            {% if not grading_periods %}
+                <p class="text-red-500 text-sm mb-4">Please contact the administrator to set the current grading period.</p>
+            {% endif %}
             <div class="flex justify-end space-x-4">
                 <button type="button" class="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300" data-modal-hide="gradingPeriodModal">Cancel</button>
-                <button type="submit" class="px-3 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800">Submit</button>
+                <button type="submit" class="px-3 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800" {% if not grading_periods %}disabled{% endif %}>Submit</button>
             </div>
         </form>
     </div>

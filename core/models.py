@@ -417,12 +417,6 @@ class GradingPeriod(models.Model):
     class Meta:
         unique_together = ('school_year', 'period')
 
-    def save(self, *args, **kwargs):
-        if self.is_current:
-            # Set is_current=False for all other GradingPeriods in the same school_year
-            GradingPeriod.objects.filter(school_year=self.school_year, is_current=True).update(is_current=False)
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.school_year.year} - {self.get_period_display()}"
 

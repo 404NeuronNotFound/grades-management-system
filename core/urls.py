@@ -44,8 +44,7 @@ urlpatterns = [
     path('student-reportCard/', views.student_reportCard, name='student-reportCard'),
     path('student-previousClasses', views.student_previousClasses, name='student-previousClasses'),
     path('student-InitialGrade', views.student_InitialGrade, name='student-InitialGrade'),
-    
-    
+
     
 
 
@@ -70,5 +69,7 @@ urlpatterns = [
 
     
     path('landingpage/', views.landingpage, name = 'landingpage'),
+
+    path('teacher-/myPrevClassRecord/', views.teacher_PrevClassRecord, name = 'teacher-myPrevClassRecord'),
     
 ]

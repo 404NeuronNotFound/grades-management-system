@@ -2014,7 +2014,10 @@ def teacher_myClassAdvisory(request):
     )
 
     # Query grading periods for the current school year only
-    grading_periods = GradingPeriod.objects.filter(school_year=current_school_year)
+    grading_periods = GradingPeriod.objects.filter(
+        school_year=current_school_year,
+        is_current=True
+    )
 
     # Handle the class selection
     selected_class_id = request.GET.get('class')
@@ -2062,7 +2065,7 @@ def teacher_SummaryGrades(request):
         'current_school_year': current_school_year,
     }
 
-    return render(request, 'teacher-SummaryGrade.html', context)
+    return render(request, 'teacher-ClassAdvisory.html', context)
 
 
 from django.http import HttpResponse
@@ -2253,13 +2256,12 @@ def teacher_prevClassAdvisory(request):
     # Convert grading_periods_by_year to JSON for use in JavaScript
     grading_periods_json = json.dumps(grading_periods_by_year)
 
-
     # Handle the class selection
     selected_class_id = request.GET.get('class')
     if selected_class_id:
         selected_class = get_object_or_404(Class, id=selected_class_id, teacher=teacher)
         request.session['selected_class_id'] = selected_class.id
-        return redirect('teacher-myClassRecord')
+        return redirect('teacher-myPrevClassRecord')  # Changed to redirect to previous class record view
 
     context = {
         'classes_by_year': classes_by_year,
@@ -2727,6 +2729,92 @@ def teacher_myClassRecord(request):
 
     return render(request, 'teacher-ClassRecordCopy.html', context)
 
+# views.py
+@login_required(login_url='login')
+@allowed_users(allowed_roles=['teacher'])
+def teacher_PrevClassRecord(request):
+    selected_class_id = request.GET.get('class')
+    selected_class = None
+    enrollments = []
+    subject_criteria = []
+    grading_periods = []
+    grouped_activities = {
+        'WW': [],
+        'PT': [],
+        'QE': []
+    }
+
+    if selected_class_id:
+        try:
+            selected_class = get_object_or_404(
+                Class.objects.select_related('school_year'),
+                id=selected_class_id,
+                teacher=request.user.teacher
+            )
+
+            # Fetch subject criteria with explicit ordering
+            subject_criteria = SubjectCriterion.objects.filter(
+                subject=selected_class.subject
+            ).select_related('grading_criterion').order_by(
+                Case(
+                    When(grading_criterion__criteria_type='WW', then=1),
+                    When(grading_criterion__criteria_type='PT', then=2),
+                    When(grading_criterion__criteria_type='QE', then=3),
+                    default=4,
+                    output_field=IntegerField()
+                )
+            )
+
+            # Fetch all activities for the class
+            activities = Activity.objects.filter(
+                class_obj=selected_class
+            ).select_related(
+                'subject_criterion__grading_criterion',
+                'grading_period'
+            ).order_by('date_created')
+
+            # Group activities by criterion type
+            for activity in activities:
+                criterion_type = activity.subject_criterion.grading_criterion.criteria_type
+                grouped_activities[criterion_type].append(activity)
+
+            # Fetch enrollments with related scores
+            enrollments = Enrollment.objects.filter(
+                class_obj=selected_class
+            ).select_related('student')
+
+            # Create score dictionary for each enrollment
+            for enrollment in enrollments:
+                scores = Score.objects.filter(
+                    enrollment=enrollment
+                ).select_related('activity')
+                
+                enrollment.score_dict = {}
+                for score in scores:
+                    score.enrollment_id = enrollment.id
+                    score.activity_id = score.activity.id
+                    enrollment.score_dict[score.activity_id] = score
+
+            # Fetch all grading periods for the school year
+            grading_periods = GradingPeriod.objects.filter(
+                school_year=selected_class.school_year
+            ).order_by('period')
+
+        except ObjectDoesNotExist as e:
+            messages.error(request, f"Error: {str(e)}")
+        except Exception as e:
+            messages.error(request, f"An unexpected error occurred: {str(e)}")
+
+    context = {
+        'selected_class': selected_class,
+        'enrollments': enrollments,
+        'subject_criteria': subject_criteria,
+        'grouped_activities': grouped_activities,
+        'grading_periods': grading_periods,
+        'is_previous_year': True,  # Flag to indicate this is a previous year view
+    }
+
+    return render(request, 'teacher-ClassRecordPrev.html', context)
 
 
 from django.http import JsonResponse
@@ -2886,42 +2974,50 @@ def get_scores(request, class_id):
 
 
 #edit-Activity
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.contrib.auth.decorators import login_required
-from .models import Class, Activity, SubjectCriterion
-
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
 def edit_activity(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
+    current_grading_period = activity.subject_criterion.grading_period
 
     if request.method == 'POST':
-        subject_criterion_id = request.POST.get('subject_criterion')
-        activity_name = request.POST.get('activity_name')
-        max_score = request.POST.get('max_score')
-
-        if subject_criterion_id:
-            subject_criterion = get_object_or_404(SubjectCriterion, id=subject_criterion_id)
-            activity.subject_criterion = subject_criterion
-
-        if activity_name:
-            activity.name = activity_name
-
-        if max_score:
-            try:
-                activity.max_score = float(max_score)
-            except ValueError:
-                messages.error(request, 'Invalid max score value.')
-
         try:
-            activity.full_clean()  # This will run the validation
+            subject_criterion_id = request.POST.get('subject_criterion')
+            activity_name = request.POST.get('activity_name')
+            max_score = request.POST.get('max_score')
+
+            if subject_criterion_id:
+                subject_criterion = get_object_or_404(
+                    SubjectCriterion, 
+                    id=subject_criterion_id,
+                    grading_period=current_grading_period
+                )
+                activity.subject_criterion = subject_criterion
+
+            if activity_name:
+                activity.name = activity_name
+
+            if max_score:
+                activity.max_score = float(max_score)
+
+            activity.full_clean()
             activity.save()
-            messages.success(request, 'Activity updated successfully.')
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'message': 'Activity updated successfully'})
+            
+            messages.success(request, 'Activity updated successfully')
+            return redirect('teacher-myClassRecord')
+
         except ValidationError as e:
-            messages.error(request, f"Validation error: {', '.join(e.messages)}")
+            error_message = ', '.join(e.messages)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': error_message}, status=400)
+            messages.error(request, f"Validation error: {error_message}")
+
         except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': str(e)}, status=500)
             messages.error(request, f"An unexpected error occurred: {str(e)}")
 
     return redirect('teacher-myClassRecord')
@@ -2956,19 +3052,22 @@ from .models import Activity
 
 @login_required(login_url='login')
 @allowed_users(allowed_roles=['teacher'])
+@require_POST
 def delete_activity(request):
-    activity_id = request.POST.get('delete_id')
-    if activity_id:
-        try:
-            activity = Activity.objects.get(id=activity_id)
-            activity.delete()
-            messages.success(request, f'Activity "{activity.name}" has been deleted successfully.')
-        except Activity.DoesNotExist:
-            messages.error(request, 'Activity not found.')
-    else:
-        messages.error(request, 'No activity selected for deletion.')
+    if request.method == 'POST':
+        activity_id = request.POST.get('delete_id')
+        if activity_id:
+            try:
+                activity = get_object_or_404(Activity, id=activity_id, class_obj__teacher=request.user.teacher)
+                activity_name = activity.name
+                activity.delete()
+                messages.success(request, f'Activity "{activity_name}" has been deleted successfully.')
+            except Activity.DoesNotExist:
+                messages.error(request, 'Activity not found or you do not have permission to delete it.')
+        else:
+            messages.error(request, 'No activity selected for deletion.')
     
-    return redirect('teacher-myClassRecord')  # Adjust this to your actual URL name
+    return redirect('teacher-myClassRecord')
 
 
 
