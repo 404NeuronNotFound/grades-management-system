@@ -15,7 +15,7 @@
 <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-1xl mt-6">
     <form method="get" action="{% url 'teacher-dashboard' %}">
         <div class="flex justify-between items-center mb-4">
-            <h5 class="text-xl font-medium text-gray-900 text-center">Student Performance</h5>
+            <h5 class="text-xl text-gray-900 text-center font-bold">Student Performance</h5>
             <div class="flex space-x-2">
                 <!-- Section Dropdown -->
                 <select name="section" onchange="this.form.submit()" class="text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64">
@@ -37,7 +37,7 @@
     <div class="flex flex-col md:flex-row gap-6">
         <!-- Top Performers Table -->
         <div class="w-full md:w-1/2 space-y-2">
-            <h6 class="text-lg font-medium text-gray-900 mb-4">Top Performers</h6>
+            <h6 class="text-lg font-medium text-gray-900 mb-4 ">Top Performers</h6>
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                     <tr>
@@ -607,39 +607,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 function exportPerformanceSummary() {
-    // Get current selections
-    const section = document.querySelector('select[name="section"]').value;
-    const gradingPeriod = document.querySelector('select[name="grading_period"]').value;
-    
-    // Make AJAX request to get PDF template
-    fetch(`{% url 'export-performance-summary' %}?section=${encodeURIComponent(section)}&grading_period=${gradingPeriod}`)
-        .then(response => response.text())
-        .then(html => {
-            // Create a new window with the HTML content
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(html);
-            printWindow.document.close();
-            
-            // Configure PDF options
-            const opt = {
-                margin: 1,
-                filename: `performance_summary_${section}_${gradingPeriod}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            
-            // Generate PDF
-            html2pdf().set(opt).from(printWindow.document.body).save()
-                .then(() => {
-                    printWindow.close();
-                });
+    // Get the selected values from the form
+    const section = document.getElementById('section').value;
+    const gradingPeriod = document.getElementById('grading_period').value;
+
+    if (!section || !gradingPeriod) {
+        alert('Please select both section and grading period');
+        return;
+    }
+
+    // Construct the URL with query parameters
+    const url = `/export-performance-summary?section=${encodeURIComponent(section)}&grading_period=${encodeURIComponent(gradingPeriod)}`;
+
+    // Create a temporary link to trigger the download
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `performance_summary.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
         })
         .catch(error => {
-            console.error('Error generating PDF:', error);
+            console.error('Error:', error);
             alert('Error generating PDF. Please try again.');
         });
 }
 </script>
-
 {% endblock %}

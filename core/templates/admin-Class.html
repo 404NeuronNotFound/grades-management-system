@@ -82,14 +82,41 @@
             
             
             <!-- Current Classes -->
-            
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-8">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Grade Level</th>
-                        <th scope="col" class="px-6 py-3">Section</th>
-                        <th scope="col" class="px-6 py-3">Teacher</th>
-                        <th scope="col" class="px-6 py-3">Subject</th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="grade_level">
+                            Grade Level
+                            <span class="sort-indicator ml-1">
+                                {% if sort_field == 'grade_level' %}
+                                    {% if sort_direction == 'asc' %}▲{% else %}▼{% endif %}
+                                {% endif %}
+                            </span>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="section">
+                            Section
+                            <span class="sort-indicator ml-1">
+                                {% if sort_field == 'section' %}
+                                    {% if sort_direction == 'asc' %}▲{% else %}▼{% endif %}
+                                {% endif %}
+                            </span>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="teacher">
+                            Teacher
+                            <span class="sort-indicator ml-1">
+                                {% if sort_field == 'teacher' %}
+                                    {% if sort_direction == 'asc' %}▲{% else %}▼{% endif %}
+                                {% endif %}
+                            </span>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="subject">
+                            Subject
+                            <span class="sort-indicator ml-1">
+                                {% if sort_field == 'subject' %}
+                                    {% if sort_direction == 'asc' %}▲{% else %}▼{% endif %}
+                                {% endif %}
+                            </span>
+                        </th>
                         <th scope="col" class="px-6 py-3">Action</th>
                     </tr>
                 </thead>
@@ -529,5 +556,33 @@
         input.value = words.join(' ');
     }
 </script>
-
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headers = document.querySelectorAll('th[data-sort]');
+        
+        headers.forEach(header => {
+            header.addEventListener('click', function() {
+                const sortField = this.dataset.sort;
+                let direction = 'asc';
+                
+                // Get current sort state
+                const currentSort = new URLSearchParams(window.location.search).get('sort');
+                const currentDirection = new URLSearchParams(window.location.search).get('direction');
+                
+                // Toggle direction if already sorting by this field
+                if (currentSort === sortField && currentDirection === 'asc') {
+                    direction = 'desc';
+                }
+                
+                // Build new URL with sort parameters
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', sortField);
+                url.searchParams.set('direction', direction);
+                
+                // Navigate to new URL
+                window.location.href = url.toString();
+            });
+        });
+    });
+    </script>
 {% endblock %}
