@@ -4,6 +4,8 @@ from django import template
 
 register = template.Library()
 
+import re
+
 @register.filter
 def get_item(dictionary, key):
     """Return the value for the given key in the dictionary."""
@@ -49,3 +51,18 @@ def filter_by_period(activities, period_id):
 @register.filter
 def filter_by_period(activities, period_id):
     return [activity for activity in activities if activity.grading_period.id == int(period_id)]
+
+@register.filter
+def make_pagination(value, page_size):
+    """
+    Splits a list into chunks for pagination.
+    """
+    value = list(value)
+    for i in range(0, len(value), page_size):
+        yield value[i:i + page_size]
+
+
+@register.filter
+def clean_name(value):
+    # Remove extra spaces and strip leading/trailing whitespace
+    return re.sub(r'\s+', ' ', value.strip())

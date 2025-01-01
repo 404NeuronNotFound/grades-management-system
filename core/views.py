@@ -2271,6 +2271,145 @@ def teacher_prevClassAdvisory(request):
     }
     return render(request, 'teacher-prevClassAdvisory.html', context)
 
+# views.py
+from django.template.loader import get_template
+from django.http import HttpResponse
+from xhtml2pdf import pisa
+from django.conf import settings
+from django.utils import timezone  # Added this import
+from io import BytesIO
+import os
+import re
+
+
+logo_path = 'static/core/image/logo.png'
+logo_dep = 'core/static/core/image/logo-dep.png'
+
+@login_required(login_url='login')
+@allowed_users(allowed_roles=['teacher'])
+def export_scores_pdf(request, class_id, period_id):
+    # Get the selected class and period
+    selected_class = get_object_or_404(Class, id=class_id, teacher=request.user.teacher)
+    period = get_object_or_404(GradingPeriod, id=period_id)
+    
+    teacher = request.user
+    
+    # Get all the necessary data
+    subject_criteria = SubjectCriterion.objects.filter(
+        subject=selected_class.subject
+    ).select_related('grading_criterion').order_by(
+        Case(
+            When(grading_criterion__criteria_type='WW', then=1),
+            When(grading_criterion__criteria_type='PT', then=2),
+            When(grading_criterion__criteria_type='QE', then=3),
+            default=4,
+            output_field=IntegerField()
+        )
+    )
+    
+    activities = Activity.objects.filter(
+        class_obj=selected_class,
+        grading_period=period
+    ).select_related('subject_criterion__grading_criterion')
+    
+    # Group activities
+    grouped_activities = {
+        'WW': [],
+        'PT': [],
+        'QE': []
+    }
+    
+    for activity in activities:
+        criterion_type = activity.subject_criterion.grading_criterion.criteria_type
+        grouped_activities[criterion_type].append(activity)
+    
+    # Get enrollments and scores
+    enrollments = Enrollment.objects.filter(
+        class_obj=selected_class
+    ).select_related('student')
+    
+    # Create score dictionary
+    score_dict = {}
+    for enrollment in enrollments:
+        score_dict[enrollment.id] = {}
+        scores = Score.objects.filter(
+            enrollment=enrollment,
+            activity__grading_period=period
+        )
+        for score in scores:
+            score_dict[enrollment.id][score.activity.id] = score
+
+    for enrollment in enrollments:
+        enrollment.student.Firstname = re.sub(r'\s+', ' ', enrollment.student.Firstname.strip())
+        enrollment.student.Lastname = re.sub(r'\s+', ' ', enrollment.student.Lastname.strip())
+
+    # Convert file paths to data URLs for PDF
+    def get_image_data_url(path):
+        import base64
+        try:
+            with open(path, 'rb') as f:
+                data = base64.b64encode(f.read()).decode()
+                ext = os.path.splitext(path)[1][1:]
+                return f'data:image/{ext};base64,{data}'
+        except:
+            return ''
+        
+    # Generate barcode
+    barcode_data = f"{selected_class.teacher.user.email}-{selected_class.grade_level}-{selected_class.section}"
+    barcode_path = f'static/barcodes/teacher_{teacher.email}_barcode'
+    os.makedirs('static/barcodes', exist_ok=True)
+    ean = Code128(barcode_data, writer=ImageWriter())
+    ean.writer.set_options({
+        'text': False,
+        'module_height': 10,  
+        'module_width': 0.2,
+        'foreground': '#1a365d',
+
+    })
+    ean.save(barcode_path)
+
+    barcode_exportpath = f'static/barcodes/teacher_{teacher.email}_barcode.png'
+
+
+
+    # Prepare context for the template
+    context = {
+        'selected_class': selected_class,
+        'period': period,
+        'school_year': selected_class.school_year,
+        'subject_criteria': subject_criteria,
+        'grouped_activities': grouped_activities,
+        'enrollments': enrollments,
+        'score_dict': score_dict,
+        'current_date': timezone.now(),
+        'logo_path': get_image_data_url(logo_path),
+        'logo_dep': get_image_data_url(logo_dep),
+        'barcode_path' : barcode_path,
+        'barcode_exportpath': barcode_exportpath,  # Add barcode to context
+
+    }
+    
+    # Render the template
+    template = get_template('studentscore_pdf.html')
+    html = template.render(context)
+    
+    # Create PDF
+    result = BytesIO()
+    pdf = pisa.pisaDocument(
+        BytesIO(html.encode("UTF-8")),
+        result,
+        encoding='UTF-8',
+    )
+    
+    # Return the PDF as response
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        filename = f"scores_{selected_class.section}_{period.get_period_display()}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    return HttpResponse("Error generating PDF", status=500)
+
 
 #teacher-myclassRecord
 # working code

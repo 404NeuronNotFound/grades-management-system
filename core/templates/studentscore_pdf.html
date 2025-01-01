@@ -1,0 +1,246 @@
+<!-- studentscore_pdf.html -->
+{% block content %}
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        @page {
+            size: landscape;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #2d3748;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header Styles */
+        .header {
+            margin-top: 5px; /* Reduced margin top */
+            margin-bottom: 2px;
+            border-bottom: 1px solid #4a5568;
+            padding-bottom: 5px; /* Reduced padding */
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .header-table td {
+            border: none;
+            vertical-align: middle;
+            padding: 0;
+        }
+
+        .logo-cell {
+            width: 15%;
+            text-align: center;
+        }
+
+        .school-info-cell {
+            width: 70%;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .logo {
+            max-width: 40px;
+            height: auto;
+        }
+
+        .school-name {
+            font-size: 10pt; /* Reduced font size */
+            font-weight: bold;
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            color: #1a365d;
+        }
+
+        .department {
+            font-size: 8pt; /* Reduced font size */
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            margin: 0;
+            color: #1a365d;
+        }
+
+        .location {
+            font-size: 7pt; /* Reduced font size */
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            margin: 0;
+            color: #1a365d;
+        }
+
+        .report-section {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .report-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 0 0 5px 0;
+        }
+
+        .class-info {
+            font-size: 9pt;
+            color: #4a5568;
+            margin: 3px 0;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        th, td {
+            padding: 6px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 9pt;
+        }
+
+        th {
+            background-color: #2d3748;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .grades-table tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+
+        .grades-table tr:hover {
+            background-color: #edf2f7;
+        }
+
+        .student-name {
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            font-size: 8pt;
+            color: #718096;
+            text-align: center;
+        }
+
+        .footer img {
+            width: 200px;
+            height: auto;
+            margin-top: 10px;
+        }
+
+        .footer p {
+            margin-top: 1px;
+            font-size: 8pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell">
+                    <img src="{{ logo_path }}" class="logo">
+                </td>
+                <td class="school-info-cell">
+                    <div class="school-name">Initao National Comprehensive High School</div>
+                    <div class="department">Junior High School Department</div>
+                    <div class="location">Initao, Misamis Oriental</div>
+                </td>
+                <td class="logo-cell">
+                    <img src="{{ logo_dep }}" class="logo">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="report-section">
+        <div class="report-title">Summary of Scores</div>
+        <div class="class-info">School Year: {{ school_year.year }}</div>
+        <div class="class-info">{{ period.get_period_display }}</div>
+        <div class="class-info">{{ selected_class.grade_level }} - {{ selected_class.section }} - {{ selected_class.subject.name }}</div>
+    </div>
+
+    {% for page in enrollments|slice:":20"|make_pagination:20 %}
+    <table class="grades-table">
+        <thead>
+            <tr>
+                <th rowspan="2">Student Names</th>
+                {% for criterion in subject_criteria %}
+                    {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                    {% if activities %}
+                        <th colspan="{{ activities|length }}">
+                            {{ criterion.grading_criterion.get_criteria_type_display }} ({{ criterion.weightage }}%)
+                        </th>
+                    {% endif %}
+                    {% endwith %}
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for criterion in subject_criteria %}
+                    {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                    {% for activity in activities %}
+                        <th>{{ activity.name }}<br><small>Max: {{ activity.max_score }}</small></th>
+                    {% endfor %}
+                    {% endwith %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for enrollment in page %}
+            <tr>
+                <td class="student-name">
+                    {{ enrollment.student.Lastname|clean_name }}, {{ enrollment.student.Firstname|clean_name }}
+                </td>
+                
+                {% for criterion in subject_criteria %}
+                {% with activities=grouped_activities|get_item:criterion.grading_criterion.criteria_type %}
+                {% for activity in activities %}
+                    <td>
+                        {% with score=score_dict|get_item:enrollment.id|get_item:activity.id %}
+                        {% if score %}
+                            {{ score.score }}
+                        {% else %}
+                            --
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                {% endfor %}
+                {% endwith %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">
+        <div class="barcode-container">
+            <img src="{{ barcode_exportpath }}" alt="Electronic Signature Barcode">
+        </div>
+        <p>Generated on {% now "F d, Y" %}</p>
+    </div>
+    {% endfor %}
+</body>
+</html>
+{% endblock %}

@@ -284,8 +284,84 @@
     {% endfor %}
 </div>
         </div>
+        
+        
     </div>
+    <div class="flex justify-center items-center mt-6">
+        <a href="#" 
+           onclick="exportPDF(event)"
+           class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center space-x-1 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+            </svg>
+            <input type="hidden" id="selected-class-id" value="{{ selected_class.id }}">
+            <span>Export PDF</span>
+        </a>
+    </div>
+    
 </div>
+<script>
+ function exportPDF(event) {
+    event.preventDefault();
+    
+    const classId = document.getElementById('selected-class-id').value;
+    // Get the currently active period tab
+    const activePeriodTab = document.querySelector('.grading-tab[data-active="true"]');
+    const periodId = activePeriodTab.dataset.periodId;
+    
+    if (!classId || !periodId) {
+        alert('Unable to export: Missing class or period information');
+        return;
+    }
+    
+    // Show loading state
+    const button = event.currentTarget;
+    const originalContent = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Generating PDF...</span>
+    `;
+    
+    // Make the request
+    window.location.href = `/export-scores-pdf/${classId}/${periodId}/`;
+    
+    // Restore button state after a delay
+    setTimeout(() => {
+        button.innerHTML = originalContent;
+    }, 3000);
+}
+    </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all period tabs
+        const periodTabs = document.querySelectorAll('.grading-tab');
+        
+        // Add click handlers to tabs
+        periodTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Update active status
+                periodTabs.forEach(t => {
+                    t.dataset.active = "false";
+                    t.classList.remove('text-blue-600', 'border-blue-600');
+                    t.classList.add('text-gray-500', 'border-transparent');
+                });
+                this.dataset.active = "true";
+                this.classList.add('text-blue-600', 'border-blue-600');
+                this.classList.remove('text-gray-500', 'border-transparent');
+                
+                // Show corresponding content
+                const periodId = this.dataset.periodId;
+                document.querySelectorAll('.grading-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                document.getElementById(`period-${periodId}`).style.display = 'block';
+            });
+        });
+    });
+    </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const tabs = document.querySelectorAll('.grading-tab');
@@ -384,7 +460,11 @@
             input.focus();
             
             saveBtn.addEventListener('click', () => handleSave(cell, input));
-            cancelBtn.addEventListener('click', () => handleCancel(cell, input));
+            cancelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleCancel(cell, input);
+            });
+
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSave(cell, input);
                 if (e.key === 'Escape') handleCancel(cell, input);
@@ -495,8 +575,10 @@
     
         // Handle cancel edit
         function handleCancel(cell, input) {
+            console.log("Cancel clicked. Reverting to original value:", input.dataset.originalValue);
             displayScore(cell, input.dataset.originalValue, input.max, input.dataset.enrollmentId, input.dataset.activityId);
         }
+
     
         // Make cell editable on click
         function makeScoreCellEditable(cell) {
@@ -527,6 +609,8 @@
             }
             return cookieValue;
         }
+
+
     
         // Initialize the active tab's content
         const activeTab = document.querySelector('.grading-tab[data-active="true"]');

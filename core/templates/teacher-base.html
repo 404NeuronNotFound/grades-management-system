@@ -131,29 +131,24 @@
                         </svg>
                         <span class="text-[15px] ml-4 text-gray-200 font-bold">My Account Details</span>
                     </a>
-                </div>
-  
-                  <!-- Users Dropdown -->
-                  <div class="p-2.5 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-blue-600 text-white" onclick="toggleDropdown('submenu1')">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
+                  </div>
+
+
+                  <div class="p-2.5 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-blue-600 text-white">
+                    <a href="{% url 'teacher-myClassAdvisory' %}" class="flex items-center"> <!-- Moved 'a' tag here -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
                           <path d="M4.5 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM14.25 8.625a3.375 3.375 0 1 1 6.75 0 3.375 3.375 0 0 1-6.75 0ZM1.5 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM17.25 19.128l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0 5.06-1.01.75.75 0 0 0 .42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003Z" />
                       </svg>
-                      <div class="flex justify-between w-full items-center">
-                          <span class="text-[15px] ml-4 text-gray-200 font-bold">My Class</span>
-                          <span class="text-sm rotate-0" id="dropdown-icon">
-                              <i class="bi bi-chevron-down"></i>
-                          </span>
-                      </div>
+                        <span class="text-[15px] ml-4 text-gray-200 font-bold">My Class</span>
+                    </a>
                   </div>
-                  <div id="submenu1" class="text-left text-sm mt-2 w-4/5 mx-auto text-gray-200 font-bold hidden" id="submenu1">
+                  <!-- <div id="submenu1" class="text-left text-sm mt-2 w-4/5 mx-auto text-gray-200 font-bold hidden" id="submenu1">
                     <a href="{% url 'teacher-myClassAdvisory' %}" class="flex items-center">
                         <h1 class="cursor-pointer p-2 hover:bg-blue-600 rounded-md mt-1">Class Handle</h1>
 
                     </a>
-                    <a href="{% url 'teacher-SummaryGrade' %}" class="flex items-center">
-                        <h1 class="cursor-pointer p-2 hover:bg-blue-600 rounded-md mt-1">Summary Grade</h1>
-                    </a>
-                  </div>
+                   
+                  </div> -->
   
                   <!-- Logout -->
                   <div class="p-2.5 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-blue-600 text-white" onclick="showLogoutModal()">

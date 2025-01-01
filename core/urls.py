@@ -47,7 +47,8 @@ urlpatterns = [
 
     
 
-
+    # urls.py
+     path('export-scores-pdf/<int:class_id>/<int:period_id>/', views.export_scores_pdf, name='export-scores-pdf'),
 
     # path('api/get_scores/', views.get_scores, name='get_scores'),
     path('api/get_activity_details/<int:activity_id>/', views.get_activity_details, name='get_activity_details'),
