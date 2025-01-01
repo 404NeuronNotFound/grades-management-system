@@ -11,11 +11,11 @@
     </div>
 </div>
 
-<!-- Top Students Table Section -->
+<!-- Student Performance Tables Section -->
 <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-1xl mt-6">
     <form method="get" action="{% url 'teacher-dashboard' %}">
         <div class="flex justify-between items-center mb-4">
-            <h5 class="text-xl font-medium text-gray-900 text-center">Top 10 Students</h5>
+            <h5 class="text-xl font-medium text-gray-900 text-center">Student Performance</h5>
             <div class="flex space-x-2">
                 <!-- Section Dropdown -->
                 <select name="section" onchange="this.form.submit()" class="text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64">
@@ -33,43 +33,81 @@
         </div>
     </form>
 
-    <!-- Flex container for chart and table -->
+    <!-- Flex container for both tables -->
     <div class="flex flex-col md:flex-row gap-6">
-
-        <!-- Table of Top Students -->
-        <div class="w-full md:w-2/3 space-y-2">
+        <!-- Top Performers Table -->
+        <div class="w-full md:w-1/2 space-y-2">
+            <h6 class="text-lg font-medium text-gray-900 mb-4">Top Performers</h6>
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3">Rank</th>
                         <th scope="col" class="px-6 py-3">Name</th>
-                        <th scope="col" class="px-6 py-3">Class</th>
                         <th scope="col" class="px-6 py-3">Initial Grade</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% if top_students %}
-                        {% for student in top_students %}
-                            <tr class="bg-white border-b">
+                    {% if top_performers %}
+                        {% for student in top_performers %}
+                            <tr class="bg-white border-b hover:bg-green-50">
                                 <td class="px-6 py-4">{{ forloop.counter }}</td>
                                 <th scope="row" class="px-6 py-4 font-medium text-gray-900">
                                     {{ student.student.Lastname }}, {{ student.student.Firstname }}
                                 </th>
-                                <td class="px-6 py-4">{{ student.class_info }}</td>
-                                <td class="px-6 py-4">{{ student.grade|floatformat:2 }}</td>
+                                <td class="px-6 py-4 text-green-600">{{ student.grade|floatformat:2 }}</td>
                             </tr>
                         {% endfor %}
                     {% else %}
                         <tr class="bg-white border-b">
-                            <td colspan="4" class="px-6 py-4 text-center">No data available</td>
+                            <td colspan="3" class="px-6 py-4 text-center">No students above</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Students Needing Support Table -->
+        <div class="w-full md:w-1/2 space-y-2">
+            <h6 class="text-lg font-medium text-gray-900 mb-4">Needing Support</h6>
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Rank</th>
+                        <th scope="col" class="px-6 py-3">Name</th>
+                        <th scope="col" class="px-6 py-3">Initial Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if students_needing_support %}
+                        {% for student in students_needing_support %}
+                            <tr class="bg-white border-b hover:bg-red-50">
+                                <td class="px-6 py-4">{{ forloop.counter }}</td>
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900">
+                                    {{ student.student.Lastname }}, {{ student.student.Firstname }}
+                                </th>
+                                <td class="px-6 py-4 text-red-600">{{ student.grade|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="bg-white border-b">
+                            <td colspan="3" class="px-6 py-4 text-center">No students below</td>
                         </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
+    <!-- <button
+            type="button"
+            onclick="exportPerformanceSummary()"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Export Summary
+    </button> -->
 </div>
-
 
 <div class="max-w-10xl bg-white rounded-xl shadow-md overflow-hidden mt-6">
     <div class="p-8">
@@ -85,49 +123,6 @@
         </div>
     </div>
 </div>
-
-<!-- Responsive grid layout for 3 aligned cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-    
-
-    <!-- Second Card: Total Students Overview -->
-    <div class="bg-white rounded-lg shadow-md p-4 w-full relative">
-        <div class="absolute inset-0 bg-gradient-to-br from-[#13754722] to-[#912a2a22] rounded-lg blur-md opacity-50 pointer-events-none"></div>
-        <div class="relative">
-            <div class="flex justify-between items-center mb-2">
-                <h5 class="text-lg font-medium text-gray-900">Total Students</h5>
-            </div>
-            <div class="flex justify-between items-center mb-4">
-                <div class="text-2xl font-bold text-gray-900">{{ total_students }}</div>
-            </div>
-            <div class="flex justify-center mb-4">
-                <div class="chart-container relative" style="width: 200px; height: 200px;">
-                    <canvas id="studentPerformanceChart"></canvas>
-                    <div class="absolute inset-0 rounded-full bg-gradient-to-br from-[#13754733] to-[#912a2a33] blur-md pointer-events-none"></div>
-                </div>
-            </div>
-            <div class="space-y-2">
-                <div class="flex justify-between items-center text-sm">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #137547;"></div>
-                        <span class="font-medium text-gray-600">Passed</span>
-                    </div>
-                    <div class="font-medium text-gray-900" id="performanceTasksValue">{{ passing_students }}</div>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #912a2a;"></div>
-                        <span class="font-medium text-gray-600">Failed</span>
-                    </div>
-                    <div class="font-medium text-gray-900" id="quarterlyGradesValue">{{ failing_students }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-</div>
-
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -608,5 +603,43 @@
     }
 });
     </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function exportPerformanceSummary() {
+    // Get current selections
+    const section = document.querySelector('select[name="section"]').value;
+    const gradingPeriod = document.querySelector('select[name="grading_period"]').value;
+    
+    // Make AJAX request to get PDF template
+    fetch(`{% url 'export-performance-summary' %}?section=${encodeURIComponent(section)}&grading_period=${gradingPeriod}`)
+        .then(response => response.text())
+        .then(html => {
+            // Create a new window with the HTML content
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            // Configure PDF options
+            const opt = {
+                margin: 1,
+                filename: `performance_summary_${section}_${gradingPeriod}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // Generate PDF
+            html2pdf().set(opt).from(printWindow.document.body).save()
+                .then(() => {
+                    printWindow.close();
+                });
+        })
+        .catch(error => {
+            console.error('Error generating PDF:', error);
+            alert('Error generating PDF. Please try again.');
+        });
+}
+</script>
 
 {% endblock %}

@@ -1,0 +1,278 @@
+<!-- performance_summary_pdf.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #2d3748;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header Styles */
+        .header {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #4a5568;
+            padding-bottom: 15px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            table-layout: fixed;
+        }
+
+        .header-table td {
+            border: none;
+            vertical-align: middle;
+            padding: 5px;
+        }
+
+        .logo-cell {
+            width: 20%;
+            text-align: center;
+        }
+
+        .school-info-cell {
+            width: 60%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: visible;
+        }
+
+        .logo {
+            max-width: 25%;
+            height: auto;
+            display: inline-block;
+            transform: scale(0.25);
+        }
+
+        .school-name {
+            font-size: 14pt;
+            font-weight: bold;
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            color: #1a365d;
+            white-space: nowrap;
+            display: inline-block;
+            overflow: visible;
+            text-overflow: clip;
+            line-height: 1;
+        }
+
+        .department {
+            font-size: 12pt;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            margin: 0;
+            color: #1a365d;
+            line-height: 1;
+        }
+
+        .location {
+            font-size: 10pt;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            margin: 0;
+            color: #1a365d;
+            line-height: 1;
+        }
+
+        .report-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .report-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 0 0 5px 0;
+        }
+
+        .class-info {
+            font-size: 10pt;
+            color: #4a5568;
+            margin: 3px 0;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            page-break-inside: auto;
+        }
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        th, td {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 9pt;
+        }
+
+        .performance-header {
+            background-color: #2d3748;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .top-performers {
+            margin-bottom: 30px;
+        }
+
+        .support-needed {
+            margin-top: 20px;
+        }
+
+        .grade-high {
+            color: #059669;
+            font-weight: bold;
+        }
+
+        .grade-low {
+            color: #DC2626;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            font-size: 8pt;
+            color: #718096;
+            text-align: center;
+            position: running(footer);
+        }
+
+        .footer img {
+            width: 200px;
+            height: auto;
+            margin-top: 10px;
+        }
+
+        .footer p {
+            margin-top: 1px;
+            font-size: 8pt;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell">
+                    <img src="{{ logo_path }}" alt="School Logo" class="logo">
+                </td>
+                <td class="school-info-cell">
+                    <h1 class="school-name">Initao National Comprehensive High School</h1>
+                    <p class="department">Junior High School Department</p>
+                    <p class="location">Initao, Misamis Oriental</p>
+                </td>
+                <td class="logo-cell">
+                    <img src="{{ logo_dep }}" alt="Department Logo" class="logo">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Report Section -->
+    <div class="report-section">
+        <h2 class="report-title">Student Performance Summary</h2>
+        <p class="class-info">School Year: {{ school_year.year }}</p>
+        <p class="class-info">{{ selected_class }}</p>
+        <p class="class-info">Grading Period: {{ selected_grading_period }}</p>
+    </div>
+
+    <!-- Top Performers Table -->
+    <div class="top-performers">
+        <table>
+            <thead>
+                <tr class="performance-header">
+                    <th colspan="3">Top Performers (83 and above)</th>
+                </tr>
+                <tr class="performance-header">
+                    <th style="width: 10%;">Rank</th>
+                    <th style="width: 60%;">Student Name</th>
+                    <th style="width: 30%;">Initial Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in top_performers %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ student.student.Lastname }}, {{ student.student.Firstname }}</td>
+                    <td class="grade-high">{{ student.grade|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No students above 83</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Students Needing Support Table -->
+    <div class="support-needed">
+        <table>
+            <thead>
+                <tr class="performance-header">
+                    <th colspan="3">Students Needing Support (Below 68)</th>
+                </tr>
+                <tr class="performance-header">
+                    <th style="width: 10%;">Rank</th>
+                    <th style="width: 60%;">Student Name</th>
+                    <th style="width: 30%;">Initial Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students_needing_support %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ student.student.Lastname }}, {{ student.student.Firstname }}</td>
+                    <td class="grade-low">{{ student.grade|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No students below 68</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="barcode-container">
+            <img src="{{ barcode_exportpath }}" alt="Electronic Signature Barcode">
+        </div>
+        <p>Generated on {% now "F d, Y" %}</p>
+    </div>
+</body>
+</html>

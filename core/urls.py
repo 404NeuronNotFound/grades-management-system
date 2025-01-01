@@ -73,4 +73,5 @@ urlpatterns = [
 
     path('teacher-/myPrevClassRecord/', views.teacher_PrevClassRecord, name = 'teacher-myPrevClassRecord'),
     
+    path('teacher/export-performance-summary/', views.export_performance_summary, name='export-performance-summary'),
 ]

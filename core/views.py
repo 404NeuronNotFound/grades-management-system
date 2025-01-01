@@ -501,6 +501,8 @@ def teacher_dashboard(request):
     current_school_year = SchoolYear.objects.filter(is_active=True).first()
     
     active_school_year = SchoolYear.objects.filter(is_active=True).first()
+    SUPPORT_THRESHOLD = 68  # Grade threshold for students needing support
+    TOP_PERFORMER_THRESHOLD = 83  # Grade threshold for top performers
 
     # Filter classes based on the current school year
     classes = Class.objects.filter(teacher=teacher, school_year=current_school_year)
@@ -512,7 +514,6 @@ def teacher_dashboard(request):
     for class_obj in classes:
         formatted_section = f"{class_obj.grade_level} - {class_obj.section} - {class_obj.subject}"
         section_choices.append(formatted_section)
-        # Map formatted section to Class object for filtering
         section_class_map[formatted_section] = class_obj
 
     class_data = (
@@ -537,27 +538,39 @@ def teacher_dashboard(request):
     else:
         selected_grading_period = first_grading
 
-    # Get top 10 students for the specific class
-    top_students = []
+    # Get students for the specific class
+    top_performers = []
+    students_needing_support = []
     if selected_class and selected_grading_period:
         enrollments = Enrollment.objects.filter(
             class_obj=selected_class
         ).select_related('student')
         
         # Calculate grades for each enrollment
-        student_grades = []
+        top_performers_list = []
+        students_below_threshold = []
+        
         for enrollment in enrollments:
             initial_grade = calculate_initial_grade(enrollment, selected_grading_period)
             if initial_grade is not None:  # Only include students with grades
-                student_grades.append({
+                student_data = {
                     'student': enrollment.student,
                     'grade': initial_grade,
                     'class_info': selected_formatted_section
-                })
+                }
+                
+                # Separate lists based on grade thresholds
+                if initial_grade >= TOP_PERFORMER_THRESHOLD:
+                    top_performers_list.append(student_data)
+                elif initial_grade < SUPPORT_THRESHOLD:
+                    students_below_threshold.append(student_data)
         
-        # Sort by grade and get top 10
-        student_grades.sort(key=lambda x: x['grade'], reverse=True)
-        top_students = student_grades[:10]
+        # Sort both lists by grade
+        top_performers_list.sort(key=lambda x: x['grade'], reverse=True)
+        students_below_threshold.sort(key=lambda x: x['grade'], reverse=True)
+        
+        top_performers = top_performers_list  # All students >= 83
+        students_needing_support = students_below_threshold  # All students < 68
 
     # Get all enrollments for overall statistics
     all_enrollments = Enrollment.objects.filter(
@@ -584,13 +597,177 @@ def teacher_dashboard(request):
         'selected_section': selected_formatted_section,
         'grading_periods': grading_periods,
         'selected_grading_period': request.GET.get('grading_period', ''),
-        'top_students': top_students,
+        'top_performers': top_performers,
+        'students_needing_support': students_needing_support,
         'passing_students': passing_students,
         'failing_students': failing_students,
         'current_school_year': current_school_year,
+        'support_threshold': SUPPORT_THRESHOLD,
+        'top_performer_threshold': TOP_PERFORMER_THRESHOLD,
     }
 
     return render(request, 'teacher-dashboard.html', context)
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.conf import settings
+import barcode
+from barcode.writer import ImageWriter
+from io import BytesIO
+import os
+from datetime import datetime
+from xhtml2pdf import pisa
+from .models import Class, Enrollment, GradingPeriod, SchoolYear
+
+def generate_barcode():
+    # Generate a unique barcode based on timestamp
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    code = barcode.Code128(timestamp, writer=ImageWriter())
+    
+    # Create BytesIO object to store the barcode
+    buffer = BytesIO()
+    code.write(buffer)
+    
+    # Save barcode to static directory
+    barcode_path = f'barcodes/performance_summary_{timestamp}.png'
+    full_path = os.path.join(settings.STATIC_ROOT, barcode_path)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    
+    # Save the barcode image
+    with open(full_path, 'wb') as f:
+        f.write(buffer.getvalue())
+    
+    return settings.STATIC_URL + barcode_path
+
+def render_to_pdf(template_src, context_dict):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+    
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        return HttpResponse(result.getvalue(), content_type='application/pdf')
+    return None
+
+
+# Add to views.py
+@login_required(login_url='login')
+@allowed_users(allowed_roles=['teacher'])
+def export_performance_summary(request):
+    # Get current selections from query parameters
+    selected_section = request.GET.get('section')
+    selected_grading_period_id = request.GET.get('grading_period')
+    
+    if not selected_section or not selected_grading_period_id:
+        return HttpResponse("Missing required parameters", status=400)
+    
+    # Get the necessary data
+    teacher = request.user.teacher
+    current_school_year = SchoolYear.objects.filter(is_active=True).first()
+    
+    # Parse section components
+    try:
+        grade_level, section, subject = selected_section.split(' - ')
+    except ValueError:
+        return HttpResponse("Invalid section format", status=400)
+    
+    # Get the class object
+    selected_class = Class.objects.filter(
+        teacher=teacher,
+        school_year=current_school_year,
+        grade_level=grade_level,
+        section=section,
+        subject=subject
+    ).first()
+    
+    if not selected_class:
+        return HttpResponse("Class not found", status=404)
+    
+    try:
+        selected_grading_period = GradingPeriod.objects.get(id=selected_grading_period_id)
+    except GradingPeriod.DoesNotExist:
+        return HttpResponse("Grading period not found", status=404)
+    
+    # Constants for grade thresholds
+    SUPPORT_THRESHOLD = 68
+    TOP_PERFORMER_THRESHOLD = 83
+    
+    # Get student performance data
+    enrollments = Enrollment.objects.filter(
+        class_obj=selected_class
+    ).select_related('student')
+    
+    # Initialize lists and counters
+    top_performers = []
+    students_needing_support = []
+    total_students = enrollments.count()
+    passing_students = 0
+    failing_students = 0
+    total_grade_sum = 0
+    students_with_grades = 0
+    
+    for enrollment in enrollments:
+        initial_grade = calculate_initial_grade(enrollment, selected_grading_period)
+        if initial_grade is not None:
+            total_grade_sum += initial_grade
+            students_with_grades += 1
+            
+            student_data = {
+                'student_name': f"{enrollment.student.last_name}, {enrollment.student.first_name}",
+                'grade': round(initial_grade, 2)
+            }
+            
+            if initial_grade >= TOP_PERFORMER_THRESHOLD:
+                top_performers.append(student_data)
+            elif initial_grade < SUPPORT_THRESHOLD:
+                students_needing_support.append(student_data)
+                
+            if initial_grade >= 60:
+                passing_students += 1
+            else:
+                failing_students += 1
+    
+    # Calculate class statistics
+    class_average = round(total_grade_sum / students_with_grades, 2) if students_with_grades > 0 else 0
+    passing_rate = round((passing_students / total_students * 100), 2) if total_students > 0 else 0
+    
+    # Sort performance lists
+    top_performers.sort(key=lambda x: x['grade'], reverse=True)
+    students_needing_support.sort(key=lambda x: x['grade'])
+    
+    context = {
+        'school_year': current_school_year,
+        'selected_class': selected_section,
+        'teacher_name': f"{teacher.user.last_name}, {teacher.user.first_name}",
+        'selected_grading_period': selected_grading_period,
+        'top_performers': top_performers,
+        'students_needing_support': students_needing_support,
+        'total_students': total_students,
+        'passing_students': passing_students,
+        'failing_students': failing_students,
+        'class_average': class_average,
+        'passing_rate': passing_rate,
+        'export_date': datetime.now().strftime('%B %d, %Y'),
+        'logo_path': os.path.join(settings.STATIC_ROOT, 'images/school_logo.png'),
+        'logo_dep': os.path.join(settings.STATIC_ROOT, 'images/deped_logo.png'),
+        'barcode_path': generate_barcode(),
+        'support_threshold': SUPPORT_THRESHOLD,
+        'top_performer_threshold': TOP_PERFORMER_THRESHOLD,
+    }
+    
+    # Generate PDF
+    pdf = render_to_pdf('performance_summary_pdf.html', context)
+    if pdf:
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"performance_summary_{grade_level}_{section}_{selected_grading_period.name}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    return HttpResponse("Error generating PDF", status=500)
 
 
 def calculate_initial_grade(enrollment, grading_period):
@@ -2293,7 +2470,7 @@ def export_scores_pdf(request, class_id, period_id):
     period = get_object_or_404(GradingPeriod, id=period_id)
     
     teacher = request.user
-    
+
     # Get all the necessary data
     subject_criteria = SubjectCriterion.objects.filter(
         subject=selected_class.subject
